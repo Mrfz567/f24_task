@@ -1,0 +1,988 @@
+# F24 File System — projektni plan
+
+## Svrha dokumenta
+
+Ovaj dokument je zajednički izvor istine za izradu F24 interview zadatka. Sadrži potvrđene odluke, granice opsega, predloženu arhitekturu, faze implementacije i kriterije završetka.
+
+Rad se odvija postupno. Prije početka svake veće faze provjeravamo plan i dogovaramo eventualne promjene. Nakon svake radne sesije ažuriramo checklistu i zapis napretka na kraju dokumenta.
+
+Oznake:
+
+- `[ ]` nije započeto
+- `[~]` u tijeku
+- `[x]` završeno i provjereno
+- `[!]` blokirano ili zahtijeva odluku
+
+## Trenutačno stanje
+
+- [x] Pročitan je izvorni zadatak iz `task.txt`.
+- [x] Dogovoreni su funkcionalni i tehnički smjerovi opisani u ovom dokumentu.
+- [x] Git repozitorij je inicijaliziran na grani `main`.
+- [~] Frontend osnova je scaffoldana i provjerena; backend još nije scaffoldan.
+- [ ] Sljedeći korak: osposobiti Docker engine i dovršiti backend/Docker osnovu iz Faze 1.
+
+---
+
+## 1. Cilj zadatka
+
+Izraditi browser-based file system sličan pojednostavljenom Dropboxu ili Windows Exploreru.
+
+Korisnik mora moći:
+
+- stvarati mape i podmape
+- stvarati datoteke unutar mapa
+- pretraživati datoteke po točnom nazivu
+- pretraživati unutar odabrane mape ili kroz cijeli sustav
+- tijekom tipkanja dobiti najviše 10 datoteka čiji naziv počinje traženim tekstom
+- brisati datoteke i cijela stabla mapa
+
+Prema specifikaciji, datoteka je samo zapis s nazivom i nema binarni sadržaj.
+
+## 2. Kriteriji evaluacije
+
+Rješenje mora zadovoljiti sljedeće kriterije iz zadatka i dodatne poruke poslodavca:
+
+- aplikacija se pokreće end-to-end isključivo prema uputama u README-u
+- jasna podjela API, data i UI slojeva
+- čitljivi nazivi i namjerna struktura repozitorija
+- bez mrtvog koda, demo scaffolding ostataka i nepotrebnih dependencyja
+- ispravna HTTP semantika na happy pathu
+- precizna usklađenost sa specifikacijom
+- smislen model podataka
+- osnovno rukovanje greškama i validacija ulaza
+- testovi osnovne poslovne logike i happy patha
+- iskren README s navedenim ograničenjima i trade-offovima
+- aplikacija se mora buildati i pokretati u debug/development načinu rada
+- završno rješenje mora biti predano kao Git repozitorij
+
+---
+
+## 3. Potvrđeni tehnološki stack
+
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router za URL-based navigaciju
+- TanStack Query za dohvaćanje, cacheiranje i osvježavanje API podataka
+- `@react-symbols/icons` iza naše reusable `EntryIcon` komponente
+- Vitest i React Testing Library
+- Playwright za mali broj end-to-end testova
+
+### Backend
+
+- PHP
+- Laravel kao REST API
+- Laravel database queue za odgođeno trajno brisanje
+- PHPUnit/Laravel testni alati
+
+### Baza i infrastruktura
+
+- PostgreSQL
+- Docker Compose
+- zasebni servisi za frontend, API, queue worker i bazu
+- healthcheck baze i kontrolirani redoslijed pokretanja servisa
+
+Dogovorena verzijska osnova nakon provjere službene dokumentacije:
+
+- Laravel 13
+- PHP 8.4 za Docker image; Laravel 13 zahtijeva najmanje PHP 8.3
+- PostgreSQL 18
+- Node.js 24 za frontend Docker image i development tooling
+- aktualni kompatibilni React i Vite, zaključani generiranim `package-lock.json`
+- Tailwind CSS 4 sa službenim Vite pluginom
+
+Sve konkretne dependency verzije zaključava Composer/npm lockfile. Ne koristimo plutajuće verzije u reproducibilnom buildu.
+
+### 3.1 Potpuni stack i odgovornost svakog dijela
+
+| Sloj | Odabir | Odgovornost i razlog odabira |
+|---|---|---|
+| UI biblioteka | React | Komponentno korisničko sučelje za file explorer |
+| Jezik frontenda | TypeScript u strict načinu | Tipovi API odgovora, sigurniji refactoring i čitljiviji ugovori između komponenti |
+| Frontend build alat | Vite | Brz development server, jednostavan React/TypeScript build i malo nepotrebnog scaffolding koda |
+| Stilovi | Tailwind CSS | Brza izrada dosljednog, profesionalnog sučelja bez uvođenja cijelog UI frameworka |
+| Routing | React Router | URL predstavlja otvorenu mapu; podržava deep link, refresh, Back i navigaciju kroz breadcrumbs |
+| Server-state | TanStack Query | Dohvaćanje, cacheiranje, invalidacija i ponovno učitavanje stabla, sadržaja, searcha i Undo stanja |
+| HTTP klijent | Native `fetch` iza našeg API sloja | Dovoljan za ovaj opseg; izbjegava dependency koji nema jasnu dodatnu vrijednost |
+| File ikone | `@react-symbols/icons` | Velik skup React/TypeScript SVG ikona i automatski izbor prema nazivu/ekstenziji |
+| UI postavke | Browser localStorage | Postavke ostaju nakon refresha i zatvaranja browsera; nema potrebe slati ih backendu |
+| Backend jezik | PHP | Zahtjev i dogovoreni backend smjer |
+| Backend framework | Laravel | Routing, validacija, ORM, migracije, queue, JSON API i testna infrastruktura |
+| API stil | Verzijski REST JSON API pod `/api/v1` | Jasna separacija frontenda i backenda te pravilna HTTP semantika |
+| ORM | Laravel Eloquent | Modeli, relacije i uobičajeni upiti; složeni rekurzivni upiti mogu koristiti query builder/raw SQL kada je jasnije |
+| SQL baza | PostgreSQL | Relacijski integritet, transakcije, indeksi i recursive CTE upiti za hijerarhijske podatke |
+| Queue | Laravel database queue | Pouzdano odgođeno trajno brisanje bez dodatnog Redis servisa |
+| Backend testovi | PHPUnit kroz Laravel test tooling | Feature/integration testovi API-ja, baze, vremena i poslovnih pravila |
+| Frontend testovi | Vitest + React Testing Library | Testiranje ponašanja komponenti i integracije s korisničkog stajališta |
+| E2E testovi | Playwright | Provjera najvažnijih tokova kroz stvarni frontend, API i bazu |
+| Kontejnerizacija | Docker + Docker Compose | Reproducibilno end-to-end pokretanje prema README-u |
+| Verzijska kontrola | Git | Obvezan način predaje i jasna povijest namjernih promjena |
+
+### 3.2 Planirani frontend dependencyji
+
+Ovo je namjerni početni skup. Svaki dependency mora opravdati svoje postojanje prije instalacije.
+
+- `react` i `react-dom`
+- `react-router-dom`
+- `@tanstack/react-query`
+- `@react-symbols/icons`
+- Tailwind CSS i službeni alat potreban za aktualnu Vite integraciju
+- `vitest`
+- `@testing-library/react`
+- `@testing-library/user-event`
+- `@testing-library/jest-dom`
+- `playwright` ili `@playwright/test`
+
+Ne planira se Redux jer je većina stanja serverska, a preostalo lokalno UI stanje je malo. Ne planira se Axios dok native `fetch` zadovoljava potrebe. Ne uvodi se zaseban veliki component framework jer želimo vlastiti, lagan Tailwind dizajn.
+
+Ako tijekom implementacije modalima treba provjerena accessibility primitiva, prije dodavanja male headless biblioteke zasebno ćemo procijeniti dependency i zapisati odluku.
+
+### 3.3 Planirani backend dependencyji
+
+- Laravel framework i njegove standardne komponente
+- PostgreSQL PHP driver
+- database queue koji dolazi kroz Laravelovu queue infrastrukturu
+- PHPUnit/Laravel testni alati
+- Laravel Pint za dosljedno PHP formatiranje
+- PHPStan/Larastan samo ako ga možemo uredno uključiti u quality gate bez nepotrebnog konfiguracijskog tereta
+
+Ne planira se Redis jer database queue zadovoljava Undo/purge opseg. Ne planira se filesystem ili object-storage paket jer datoteke nemaju binarni sadržaj. Ne uvodimo Repository paket ni dodatni ORM.
+
+### 3.4 Registar potvrđenih odluka
+
+Ovaj sažetak čuva ne samo *što* koristimo nego i *zašto*, kako se odluke ne bi izgubile ako se razgovor prekine.
+
+| Tema | Potvrđena odluka | Razlog / posljedica |
+|---|---|---|
+| SQL baza | PostgreSQL | PostgreSQL je SQL baza i u potpunosti zadovoljava zadatak |
+| Model stabla | Jedna `entries` tablica s `parent_id` | Jednostavan adjacency-list model, prirodan za CRUD i recursive CTE |
+| Datoteke i mape | Dijele istu tablicu i namespace unutar roditelja | Jedno pravilo naziva i jednostavnije stablo |
+| Root | Sistemski zapis koji se ne briše i ne preimenuje | Izbjegava posebna `NULL parent` pravila za obične zapise |
+| Sadržaj datoteke | Ne postoji; sprema se samo puni naziv | Strogo prati zadatak i izbjegava nepotreban upload/storage opseg |
+| New file | Modal s ručnim unosom poput `file.docx` | Nema Browse gumba ni drag-and-drop uploada |
+| Dupli naziv pri createu | Automatski `(1)`, `(2)` prije ekstenzije | Predvidljivo ponašanje slično file exploreru |
+| Konflikt pri renameu | Prikaz greške, bez automatskog suffixa | Korisnik mora svjesno odabrati novi naziv |
+| Case sensitivity | Nazivi i search uspoređuju se case-insensitive | `Report.pdf` i `report.pdf` smatraju se istim nazivom |
+| Brisanje | Odmah se šalje backendu i postaje privremeno | Browser nije autoritet za trajno brisanje |
+| Undo rok | 10 sekundi | Dovoljno vremena za reakciju bez dugog zadržavanja pending stanja |
+| Undo token | Jedan nepredvidivi token po korisničkoj delete akciji | Cijelo podstablo vraća se kao jedna grupa |
+| Purge | Delayed Laravel database queue job | Radi čak i ako se tab zatvori ili osvježi |
+| Više brisanja | Svaka deletion grupa ima vlastiti toast | Moguće je pojedinačno vratiti više uzastopnih brisanja |
+| Toast položaj | Donji desni kut, iznad cijele aplikacije | Ostaje vidljiv tijekom navigacije |
+| Refresh tijekom Undoa | Frontend dohvaća pending deletion grupe | Undo se ne gubi osvježavanjem stranice |
+| Search UI | Jedno polje + `Search everywhere` checkbox | Nema dvije odvojene tražilice |
+| Lokalni search | Rekurzivno kroz otvorenu mapu i sve podmape | Moćniji folder-scoped search |
+| Globalni search | Sve aktivne datoteke | Izvršava zahtjev “across all files” |
+| Placeholderi | `Search this folder` / `Searching everywhere` | Jasno komuniciraju aktivni scope |
+| Suggestions | Starts-with, najviše 10 | Precizna usklađenost sa specifikacijom |
+| Exact search | Case-insensitive točan naziv datoteke | Odvojeno ponašanje od suggestionsa |
+| Sidebar | Klikabilno, sklopivo stablo mapa | Klik na granu otvara mapu u glavnom prikazu |
+| Breadcrumbs | Klikabilni preci | Brza izravna navigacija prema višoj mapi |
+| Back | Povijest prethodno posjećenih lokacija | Nije isto što i odlazak u roditelja |
+| Prikaz sadržaja | List default, grid/card opcionalno | Profesionalan detaljni prikaz i korisnička preferencija |
+| Ekstenzije | Vizualni on/off, stvarni naziv se ne mijenja | Postavka ne utječe na API, search, duplicate ili rename logiku |
+| UI persistence | localStorage | Ostaje nakon zatvaranja browsera; cookie nije potreban |
+| Ikone | Biblioteka iza naše `EntryIcon` komponente | Jedna zamjenjiva integracijska točka i fallback za nepoznate tipove |
+| Folder ikone | Različit prikaz prazne i neprazne mape | `hasChildren` se izvodi iz aktivnog sadržaja |
+| New akcija | Floating gumb u donjem lijevom kutu | Otvara izbornik `New folder` / `New file` |
+| Modali | Shared modal infrastruktura | Create, rename i delete ne dupliciraju ponašanje |
+| Boje | Bijelo/svijetlosivo uz semantičke akcijske boje | Zeleno create/success, crveno delete, plavo info/Undo, narančasto warning |
+| Mobilni dizajn | Nije cilj zadatka | Desktop browser sučelje ima prioritet |
+| Clean arhitektura | Tanke HTTP klase + domenske Actions/Services | Jasne odgovornosti bez nepotrebnog enterprise boilerplatea |
+| Repository pattern | Ne uvodi se bez stvarne potrebe | Eloquent je dovoljan; izbjegava se ceremonijalni sloj |
+| Docker | Uključen | Olakšava evaluaciju i donosi dodatnu vrijednost zadatku |
+| README | Potpun, reproducibilan i iskren | Navodi setup, testove, arhitekturu, trade-offove i poznate nedostatke |
+
+### 3.5 Odluke koje još nisu zaključane
+
+Sljedeće nisu zaboravljene; namjerno su ostavljene za Fazu 0 ili trenutak kada imamo dovoljno tehničkog konteksta:
+
+- konačan naziv aplikacije
+- točne zaključane verzije PHP-a, Laravela, Nodea, Reacta, PostgreSQL-a i Tailwinda
+- konkretan tip primarnog ID-ja (`UUID`/`ULID` ili drugi prikladan izbor)
+- treba li sidebar collapse ući u prvu verziju ili samo ako ostane vremena
+- treba li dodati malu headless accessibility biblioteku za modal/menu primitive
+- konačne nijanse boja, tipografija i dimenzije nakon prvog UI prototipa
+
+Promjena bilo koje potvrđene odluke upisuje se u ovaj dokument prije ili zajedno s implementacijom.
+
+---
+
+## 4. Opseg projekta
+
+### 4.1 Obvezna funkcionalnost
+
+- stvaranje mapa i podmapa
+- stvaranje datoteke ručnim unosom punog naziva, npr. `izvjestaj.docx`
+- prikaz sadržaja odabrane mape
+- pretraga datoteka po točnom nazivu
+- globalna i folder-scoped pretraga
+- najviše 10 prefix prijedloga tijekom tipkanja
+- brisanje datoteke ili cijelog stabla mape
+- README s potpunim uputama
+- Docker razvojno okruženje
+- testovi temeljne logike
+
+### 4.2 Dogovorene dodatne funkcionalnosti
+
+- Undo brisanja u roku od 10 sekundi
+- backend je autoritet za Undo rok i trajno brisanje
+- više paralelnih Undo obavijesti
+- vraćanje aktivnih Undo obavijesti nakon refresha
+- automatsko rješavanje duplih naziva pri stvaranju
+- preimenovanje datoteka i mapa
+- klikabilno stablo mapa u sidebaru
+- klikabilni breadcrumbs
+- Back navigacija prema povijesti posjećenih lokacija
+- list prikaz kao zadani i grid/card prikaz kao opcija
+- skrivanje/prikaz ekstenzija kao isključivo vizualna postavka
+- ikone prema ekstenziji datoteke
+- različit prikaz prazne i neprazne mape
+- localStorage za UI postavke
+- profesionalan empty state
+
+### 4.3 Namjerno izvan opsega
+
+- autentikacija i autorizacija
+- stvarni upload ili download sadržaja datoteke
+- spremanje binarnog sadržaja
+- mobilno optimiziran dizajn
+- dijeljenje datoteka
+- verzioniranje datoteka
+- permissions sustav
+- drag-and-drop premještanje zapisa
+- premještanje datoteka i mapa između roditelja, osim ako ga naknadno izričito dogovorimo
+- produkcijski cloud deployment
+
+---
+
+## 5. Model podataka
+
+### 5.1 Model stabla
+
+Koristi se adjacency-list model: svaki zapis pokazuje na neposrednog roditelja preko `parent_id`.
+
+Datoteke i mape nalaze se u zajedničkoj tablici `entries`. Time dobivamo jedno stablo i jedno pravilo jedinstvenosti naziva unutar mape.
+
+Postoji jedan sistemski Root zapis:
+
+- Root nema roditelja
+- Root se ne može obrisati
+- Root se ne može preimenovati
+- svi zapisi najviše razine imaju Root kao roditelja
+
+### 5.2 Predložena tablica `entries`
+
+| Stupac | Svrha |
+|---|---|
+| `id` | Primarni identifikator zapisa |
+| `parent_id` | Neposredna roditeljska mapa |
+| `type` | `file` ili `folder` |
+| `name` | Puni naziv, uključujući ekstenziju datoteke |
+| `deleted_at` | Vrijeme privremenog brisanja |
+| `deletion_batch_id` | Veza na Undo grupu |
+| `created_at` | Vrijeme stvaranja |
+| `updated_at` | Vrijeme zadnje izmjene |
+
+### 5.3 Predložena tablica `deletion_batches`
+
+Jedno korisničko brisanje predstavlja jednu grupu, čak i kada briše cijelo podstablo.
+
+| Stupac | Svrha |
+|---|---|
+| `id` | Interni identifikator grupe |
+| `token` | Javni, nepredvidivi Undo token |
+| `root_entry_id` | Zapis na kojem je brisanje pokrenuto |
+| `expires_at` | Krajnje vrijeme za Undo |
+| `status` | `pending`, `restored` ili `purged` |
+| `created_at` | Vrijeme pokretanja brisanja |
+| `updated_at` | Vrijeme zadnje promjene statusa |
+
+Točni tipovi ID-jeva i indeksi zaključavaju se tijekom migracija. Preferira se nepredvidivi javni identifikator za URL/API korištenje.
+
+### 5.4 Pravila podataka
+
+- roditelj svakog običnog zapisa mora postojati i mora biti mapa
+- nije dopušten ciklus u stablu
+- datoteka ne može biti roditelj drugom zapisu
+- naziv je jedinstven unutar iste roditeljske mape, neovisno o velikim i malim slovima
+- datoteke i mape dijele isti prostor naziva
+- privremeno obrisani zapisi rezerviraju naziv do trajnog brisanja
+- obrisani zapisi ne pojavljuju se u normalnim listama, stablu ili pretrazi
+- prazna/neprazna mapa određuje se prema aktivnoj djeci
+
+---
+
+## 6. Pravila naziva i validacija
+
+Naziv datoteke ili mape:
+
+- obvezan je
+- nakon trimanja mora imati od 1 do 255 znakova
+- smije sadržavati unutarnje razmake
+- smije sadržavati donju crtu `_`
+- smije sadržavati točke i ekstenzije
+- ne smije biti `.` ili `..`
+- ne smije sadržavati `/`, `\\` ni kontrolne znakove
+- ne smije se sastojati samo od praznih znakova
+
+Primjeri dopuštenih naziva:
+
+- `Moj dokument.docx`
+- `zavrsni_izvjestaj_2026.pdf`
+- `Projekt broj 1`
+- `arhiva.v1.final.zip`
+
+### 6.1 Dupli nazivi pri stvaranju
+
+Kod stvaranja se automatski dodaje prvi slobodan broj:
+
+```text
+report.pdf
+report (1).pdf
+report (2).pdf
+
+Fotografije
+Fotografije (1)
+Fotografije (2)
+```
+
+Broj se kod datoteka dodaje prije posljednje ekstenzije.
+
+Generiranje naziva mora biti sigurno pri istodobnim zahtjevima: baza nameće jedinstvenost, a backend kontrolirano ponavlja pokušaj ako dođe do race conditiona.
+
+### 6.2 Preimenovanje
+
+- preimenovanje koristi zasebnu akciju i `PATCH` endpoint
+- za postojeći naziv unutar iste mape vraća se jasna conflict/validation greška
+- kod ručnog preimenovanja naziv se ne mijenja automatski u `(1)`
+- preimenovanje mape ne zahtijeva izmjenu potomaka jer se veze temelje na ID-jevima
+- kada su ekstenzije vizualno skrivene, Rename modal i dalje jasno prikazuje osnovni naziv i ekstenziju
+- namjerna promjena ekstenzije je dopuštena i mijenja prikazanu ikonu
+
+---
+
+## 7. Brisanje i Undo
+
+### 7.1 Tijek brisanja
+
+1. Frontend odmah šalje zahtjev za brisanje.
+2. Backend u jednoj transakciji pronalazi zapis i sve potomke.
+3. Backend stvara `deletion_batch` s rokom od 10 sekundi.
+4. Cijelo podstablo označava se privremeno obrisanim i povezuje s istom grupom.
+5. Backend zakazuje delayed queue job.
+6. API vraća token i apsolutno vrijeme isteka.
+7. Frontend prikazuje globalnu Undo obavijest.
+8. Ako Undo nije zatražen na vrijeme, worker trajno briše grupu.
+
+Frontend timer nije autoritet. On samo prikazuje razliku između `expiresAt` koji je vratio backend i trenutačnog vremena.
+
+### 7.2 Undo ponašanje
+
+- Undo toast nalazi se u donjem desnom kutu iznad ostatka sučelja
+- toast ostaje aktivan tijekom navigacije između mapa
+- korisnik može normalno obavljati druge radnje dok timer traje
+- svako brisanje ima vlastiti token i vlastiti toast
+- nakon refresha frontend dohvaća još aktivne deletion grupe
+- Undo vraća cijelu grupu, uključujući sve potomke obrisane tom akcijom
+- Undo nakon isteka vraća jasnu grešku i ne vraća sadržaj
+- queue job mora biti idempotentan i siguran ako se pokrene više puta
+
+---
+
+## 8. Pretraga
+
+Postoji jedno search polje i checkbox `Search everywhere`.
+
+### 8.1 Scope
+
+Kada checkbox nije označen:
+
+- placeholder je `Search this folder`
+- pretraga je rekurzivna kroz trenutačnu mapu i sve njezine podmape
+
+Kada je checkbox označen:
+
+- placeholder je `Searching everywhere`
+- pretraga obuhvaća sve aktivne datoteke u sustavu
+
+### 8.2 Exact search
+
+- pretražuju se datoteke, kako zahtijeva specifikacija
+- usporedba naziva je case-insensitive
+- rezultat prikazuje naziv, ikonu i punu breadcrumb putanju
+- klik na rezultat otvara njegovu roditeljsku mapu i označava datoteku
+
+### 8.3 Prefix suggestions
+
+- pokreću se tijekom tipkanja nakon kratkog debouncea
+- logika je isključivo `starts with`
+- vraća se najviše 10 aktivnih datoteka
+- poštuje se odabrani scope
+- rezultati imaju determinističan redoslijed
+- zastarjeli frontend zahtjevi moraju se otkazati ili ignorirati
+
+---
+
+## 9. UX i vizualni dizajn
+
+### 9.1 Stil
+
+- profesionalan, čist i nenametljiv izgled
+- bijele i svijetlosive površine
+- tamnosivi čitljivi tekst
+- jedna primarna akcentna boja
+- zelena za stvaranje i uspjeh
+- crvena za destruktivne radnje
+- plava za informacije i Undo
+- narančasta za upozorenja
+- dosljedni border radius, razmaci, hover, focus i disabled stilovi
+- boja uvijek ima i tekstualni/ikonski signal; ne smije biti jedini nositelj značenja
+
+### 9.2 App shell
+
+#### Header
+
+- naziv ili mali logo aplikacije
+- glavno search polje
+- checkbox `Search everywhere`
+- Settings izbornik
+
+#### Lijevi sidebar
+
+- hijerarhijsko stablo mapa
+- Root je uvijek na vrhu
+- grane se mogu otvoriti i zatvoriti
+- aktivna mapa je jasno označena
+- klik na mapu otvara je u glavnom prikazu
+- sidebar se može skupiti ako to ne komplicira osnovnu implementaciju
+
+#### Glavni sadržaj
+
+- Back gumb prije breadcrumbsa
+- klikabilni breadcrumbs
+- naslov trenutačne mape
+- toggle između list i grid prikaza
+- sadržaj trenutačne mape
+- kontekstualne akcije za svaki zapis
+
+### 9.3 Navigacija
+
+- URL predstavlja trenutačno otvorenu mapu
+- klik u sidebaru, breadcrumbu ili search rezultatu ažurira URL
+- Back vraća prethodno posjećenu lokaciju, a ne nužno roditeljsku mapu
+- kada nema prethodne lokacije unutar aplikacije, Back je onemogućen
+- breadcrumbs služe za izravan odlazak u bilo kojeg pretka
+- deep link i refresh moraju ponovno otvoriti istu mapu
+
+### 9.4 List i grid prikaz
+
+List je zadani prikaz.
+
+Predloženi stupci:
+
+```text
+Name | Type | Created | Actions
+```
+
+Ne prikazuje se izmišljena veličina jer datoteke nemaju sadržaj.
+
+Grid koristi iste podatke, ikone i akcije. Poslovna logika se ne duplicira između `EntryList` i `EntryGrid`.
+
+Odabrani prikaz sprema se u localStorage.
+
+### 9.5 Stvaranje zapisa
+
+U donjem lijevom kutu nalazi se floating `New` gumb s ikonom plus i tooltipom.
+
+Klik otvara izbornik:
+
+- `New folder`
+- `New file`
+
+Obje akcije koriste reusable modal infrastrukturu:
+
+- New folder traži naziv mape
+- New file traži puni naziv datoteke, npr. `file.docx`
+- nema Browse gumba, drag-and-dropa ni uploada sadržaja
+- modal prikazuje validacijske greške bez zatvaranja
+- nakon uspjeha osvježava se trenutačni sadržaj i relevantno stablo
+
+### 9.6 Empty state
+
+Kada je mapa prazna prikazuje se nenametljiva poruka, npr.:
+
+```text
+This folder is empty.
+Create a folder or file to get started.
+```
+
+Empty state i floating gumb koriste istu create logiku; nema duplicirane implementacije.
+
+### 9.7 Ekstenzije i ikone
+
+- `Show file extensions` je isključivo vizualna postavka
+- stvarni naziv u bazi i API-ju uvijek ostaje cijeli
+- postavka se sprema u localStorage i ostaje nakon zatvaranja browsera
+- skrivanje ekstenzije ne mijenja pretragu, duplikate, rename ili API podatke
+- `EntryIcon` je jedino mjesto koje direktno koristi biblioteku ikona
+- poznate ekstenzije dobivaju pripadajuću ikonu
+- nepoznata ekstenzija dobiva generičku file ikonu
+- prazna i neprazna mapa imaju različit prikaz
+
+---
+
+## 10. Predložena API površina
+
+Konačni nazivi ruta mogu se blago prilagoditi tijekom implementacije, ali semantika mora ostati jasna i REST konzistentna.
+
+| Metoda i ruta | Namjena | Uspješan status |
+|---|---|---|
+| `GET /api/v1/folders/{id}/entries` | Sadržaj mape | `200` |
+| `GET /api/v1/folders/tree` | Aktivno stablo mapa | `200` |
+| `GET /api/v1/entries/{id}/breadcrumbs` | Putanja do zapisa/mape | `200` |
+| `POST /api/v1/entries` | Stvaranje datoteke ili mape | `201` |
+| `PATCH /api/v1/entries/{id}` | Preimenovanje | `200` |
+| `DELETE /api/v1/entries/{id}` | Privremeno brisanje i scheduling | `202` |
+| `POST /api/v1/deletions/{token}/undo` | Vraćanje deletion grupe | `200` |
+| `GET /api/v1/deletions/pending` | Aktivni Undo timeri | `200` |
+| `GET /api/v1/files/search` | Exact-name search | `200` |
+| `GET /api/v1/files/suggestions` | Najviše 10 prefix rezultata | `200` |
+
+### 10.1 Standardne greške
+
+- `404 Not Found` za nepostojeći ili nedostupan zapis
+- `409 Conflict` za konflikt pri ručnom preimenovanju
+- `422 Unprocessable Content` za validacijske greške
+- `500 Internal Server Error` za neočekivanu grešku, bez otkrivanja internih detalja
+
+API greške trebaju imati jedan dosljedan JSON oblik, primjerice:
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "name": ["An entry with this name already exists."]
+  }
+}
+```
+
+---
+
+## 11. Organizacija repozitorija
+
+```text
+/
+├── backend/
+├── frontend/
+├── docker/
+├── compose.yaml
+├── .env.example
+├── README.md
+├── PROJECT_PLAN.md
+└── task.txt
+```
+
+### 11.1 Backend
+
+```text
+backend/app/
+├── Domain/Filesystem/
+│   ├── Actions/
+│   │   ├── CreateEntry.php
+│   │   ├── DeleteEntry.php
+│   │   ├── RenameEntry.php
+│   │   ├── RestoreDeletion.php
+│   │   └── SearchFiles.php
+│   ├── Exceptions/
+│   └── Services/
+│       └── UniqueNameGenerator.php
+├── Http/
+│   ├── Controllers/Api/V1/
+│   ├── Requests/
+│   └── Resources/
+├── Jobs/
+│   └── PurgeDeletedEntries.php
+└── Models/
+    ├── DeletionBatch.php
+    └── Entry.php
+```
+
+Pravila:
+
+- controller prima HTTP zahtjev, poziva use case i oblikuje odgovor
+- Form Request klase validiraju ulaz
+- Resource klase određuju API izlaz
+- poslovna operacija nalazi se u jasno imenovanoj Action klasi
+- model sadrži relacije, castove i jednostavne model-specifične upite
+- kompleksna poslovna logika ne ide u controller
+- ne uvodimo Repository sloj bez stvarne potrebe
+- ne stvaramo generičke `Helpers` ili `Utils` mape bez jasnog vlasništva
+
+### 11.2 Frontend
+
+```text
+frontend/src/
+├── app/
+│   ├── router/
+│   ├── providers/
+│   └── styles/
+├── features/filesystem/
+│   ├── api/
+│   ├── components/
+│   ├── hooks/
+│   ├── types/
+│   └── utils/
+├── pages/
+└── shared/
+    ├── components/
+    ├── hooks/
+    └── lib/
+```
+
+Planirane reusable cjeline:
+
+- `AppShell`
+- `FolderTree`
+- `Breadcrumbs`
+- `BackButton`
+- `EntryIcon`
+- `EntryName`
+- `EntryActions`
+- `EntryList`
+- `EntryGrid`
+- `CreateEntryDialog`
+- `RenameEntryDialog`
+- `DeleteEntryDialog`
+- `SearchBox`
+- `SearchResults`
+- `UndoToast`
+- `UndoToastRegion`
+- query/mutation hookovi za entries, search i deletion grupe
+
+Reusable komponenta uvodi se kada centralizira stvarno ponašanje ili uklanja stvarno ponavljanje. Ne pretvaramo svaki mali HTML element u apstrakciju.
+
+---
+
+## 12. Docker i razvojno okruženje
+
+Predloženi Compose servisi:
+
+- `frontend` — Vite development server
+- `api` — Laravel API u debug/development načinu
+- `worker` — Laravel queue worker iz iste backend slike
+- `db` — PostgreSQL s persistent volumeom i healthcheckom
+- po potrebi jednokratni migration/init servis
+
+Cilj je da evaluator nakon kloniranja može slijediti README bez lokalne instalacije PHP-a, Composera, Nodea ili PostgreSQL-a, osim Dockera.
+
+Potrebno je osigurati:
+
+- reproducibilan build
+- zaključane dependency verzije kroz lock datoteke
+- `.env.example` bez tajni
+- čekanje na zdravu bazu prije API migracija/pokretanja
+- persistent development bazu
+- dokumentiran clean reset development podataka
+- dokumentirane naredbe za backend, frontend i E2E testove
+
+---
+
+## 13. Testna strategija
+
+### 13.1 Backend feature/integration testovi
+
+- [ ] stvaranje mape
+- [ ] stvaranje podmape
+- [ ] stvaranje datoteke
+- [ ] odbijanje roditelja koji je datoteka
+- [ ] validacija naziva
+- [ ] automatski `(1)`, `(2)` nazivi
+- [ ] duplikati neovisno o velikim/malim slovima
+- [ ] race-condition zaštita jedinstvenosti
+- [ ] listanje samo aktivne neposredne djece
+- [ ] točna pretraga u trenutnom podstablu
+- [ ] globalna točna pretraga
+- [ ] prefix search i limit od 10
+- [ ] prefix search poštuje scope
+- [ ] privremeno obrisani zapisi nisu u rezultatima
+- [ ] brisanje datoteke
+- [ ] rekurzivno brisanje mape
+- [ ] Undo unutar 10 sekundi
+- [ ] Undo nakon isteka
+- [ ] idempotentno trajno brisanje
+- [ ] više neovisnih deletion grupa
+- [ ] preimenovanje datoteke i mape
+- [ ] konflikt pri preimenovanju
+- [ ] zaštita Root zapisa
+- [ ] očekivani HTTP statusi i JSON oblici
+
+### 13.2 Frontend component/integration testovi
+
+- [ ] prikaz sadržaja mape
+- [ ] list/grid toggle i localStorage
+- [ ] Show file extensions i localStorage
+- [ ] ikona prema ekstenziji i fallback ikona
+- [ ] prazna/neprazna folder ikona
+- [ ] sidebar navigacija
+- [ ] klikabilni breadcrumbs
+- [ ] Back ponašanje
+- [ ] New izbornik i create modali
+- [ ] Rename modal
+- [ ] delete potvrda
+- [ ] globalni Undo toast tijekom navigacije
+- [ ] obnova pending Undo stanja nakon refresha
+- [ ] search placeholder ovisno o checkboxu
+- [ ] autocomplete s najviše 10 rezultata
+- [ ] prikaz API i validacijskih grešaka
+- [ ] empty state
+
+### 13.3 End-to-end happy pathovi
+
+- [ ] pokretanje aplikacije iz čistog Docker okruženja
+- [ ] stvori mapu → otvori je → stvori datoteku → pronađi je
+- [ ] stvori podmapu → pretraži iz pretka → otvori rezultat
+- [ ] obriši mapu s potomcima → Undo → potvrdi da je stablo vraćeno
+- [ ] obriši datoteku → pričekaj istek → potvrdi trajno brisanje
+- [ ] promijeni prikaz i ekstenzije → refresh → potvrdi spremljene postavke
+
+Testovi trebaju pokrivati osnovni rizik i poslovna pravila. Ne težimo umjetnom postotku pokrivenosti.
+
+---
+
+## 14. Faze implementacije
+
+### Faza 0 — Repo i tehničke verzije
+
+- [x] inicijalizirati Git repozitorij na grani `main`
+- [x] dodati početni `.gitignore`
+- [x] provjeriti dostupne Git, Docker Compose i Node/npm verzije
+- [x] potvrditi da lokalni PHP/Composer nisu potrebni jer se backend izvršava kroz Docker
+- [x] odabrati verzijsku osnovu stacka prema službenoj dokumentaciji
+- [x] potvrditi radni naziv aplikacije `F24 File System` i slug `f24-filesystem`
+- [~] frontend dependency verzije zaključane su u `package-lock.json`; backend `composer.lock` čeka Laravel scaffold
+- [!] pokrenuti/provjeriti Docker engine; Docker CLI i Compose postoje, ali engine trenutačno nije dostupan
+- [x] napraviti prvi namjerni commit s planom i provjerenom frontend osnovom
+
+Kriterij završetka: Git je čist, verzije su dokumentirane i nema aplikacijskog scaffolding otpada.
+
+### Faza 1 — Scaffold i Docker osnova
+
+- [ ] scaffoldati Laravel backend
+- [x] scaffoldati React + TypeScript + Vite frontend
+- [x] postaviti Tailwind CSS 4 kroz službeni Vite plugin
+- [x] postaviti React Router i TanStack Query providere
+- [x] instalirati `@react-symbols/icons` iza buduće `EntryIcon` integracije
+- [x] postaviti Vitest, React Testing Library i početni smoke test
+- [x] ukloniti Vite demo sadržaj i assete
+- [ ] napraviti Dockerfileove i Compose servise
+- [ ] dodati PostgreSQL healthcheck
+- [ ] povezati API s bazom
+- [ ] postaviti CORS za development
+- [ ] dodati osnovni API health endpoint
+- [ ] potvrditi debug pokretanje end-to-end
+
+Kriterij završetka: jedna dokumentirana Docker naredba podiže frontend, API, worker i zdravu bazu.
+
+### Faza 2 — Baza i backend jezgra
+
+- [ ] migracije za `entries` i `deletion_batches`
+- [ ] queue tablice i konfiguracija database queuea
+- [ ] Root seed/init logika
+- [ ] Eloquent modeli i relacije
+- [ ] constrainti i indeksi
+- [ ] CreateEntry action i unique-name generator
+- [ ] listanje sadržaja mape
+- [ ] folder tree endpoint
+- [ ] breadcrumbs endpoint
+- [ ] backend testovi ove faze
+
+Kriterij završetka: API pouzdano stvara i lista hijerarhiju te provodi sva pravila naziva.
+
+### Faza 3 — Pretraga
+
+- [ ] rekurzivni folder-scoped exact search
+- [ ] globalni exact search
+- [ ] rekurzivni folder-scoped prefix search
+- [ ] globalni prefix search
+- [ ] limit 10 i determinističan redoslijed
+- [ ] indeksiranje i provjera query plana na smislenom skupu podataka
+- [ ] backend testovi pretrage
+
+Kriterij završetka: oba search moda precizno zadovoljavaju specifikaciju i ignoriraju obrisane zapise.
+
+### Faza 4 — Delete, queue i Undo
+
+- [ ] rekurzivni soft delete u transakciji
+- [ ] kreiranje deletion grupe i tokena
+- [ ] delayed purge job
+- [ ] Undo endpoint
+- [ ] pending deletions endpoint
+- [ ] zaštita od isteklog ili ponovljenog tokena
+- [ ] idempotentnost workera
+- [ ] backend testovi s kontroliranim vremenom
+
+Kriterij završetka: brisanje i Undo rade i bez aktivnog browsera, uključujući refresh i istek roka.
+
+### Faza 5 — Frontend shell i navigacija
+
+- [ ] AppShell i osnovni Tailwind design tokeni
+- [ ] header
+- [ ] sidebar i folder tree
+- [ ] route za otvorenu mapu
+- [ ] glavni prikaz sadržaja
+- [ ] Back gumb i history ponašanje
+- [ ] klikabilni breadcrumbs
+- [ ] loading, error i empty stanja
+- [ ] frontend testovi navigacije
+
+Kriterij završetka: korisnik može intuitivno pregledavati cijelo stablo i refresh zadržava lokaciju.
+
+### Faza 6 — CRUD UI i preimenovanje
+
+- [ ] floating New gumb i izbornik
+- [ ] reusable modal infrastruktura
+- [ ] New folder modal
+- [ ] New file modal s ručnim unosom naziva
+- [ ] Rename modal
+- [ ] Delete confirmation modal
+- [ ] osvježavanje query cachea nakon mutacija
+- [ ] konzistentne success/error poruke
+- [ ] frontend testovi akcija
+
+Kriterij završetka: sve create, rename i delete akcije rade kroz UI uz jasnu validaciju.
+
+### Faza 7 — Search, Undo i završni UI detalji
+
+- [ ] search input i `Search everywhere` checkbox
+- [ ] dinamički placeholder
+- [ ] debounce i zaštita od stale rezultata
+- [ ] autocomplete rezultati i putanje
+- [ ] exact search rezultati
+- [ ] globalni Undo toast region
+- [ ] više istodobnih Undo toastova
+- [ ] obnova pending toastova nakon refresha
+- [ ] list/grid prikaz
+- [ ] localStorage postavke
+- [ ] `EntryIcon` i extension mapping
+- [ ] prazna/neprazna folder ikona
+- [ ] Show file extensions
+- [ ] polish hover/focus/disabled stanja
+
+Kriterij završetka: sve dogovorene UX funkcionalnosti rade bez duplicirane poslovne logike.
+
+### Faza 8 — Testovi, robustnost i čišćenje
+
+- [ ] dovršiti backend core testove
+- [ ] dovršiti frontend core testove
+- [ ] dodati Playwright happy pathove
+- [ ] provjeriti input validation i standardni error format
+- [ ] provjeriti HTTP statuse
+- [ ] provjeriti keyboard/focus pristupačnost modala i glavnih akcija
+- [ ] pokrenuti lint, format, typecheck, test i build
+- [ ] ukloniti demo scaffold, mrtav kod i nekorištene dependencyje
+- [ ] provjeriti da nema tajni ni lokalnih artefakata u Gitu
+
+Kriterij završetka: svi quality gateovi prolaze iz čistog checkouta.
+
+### Faza 9 — README i završna provjera predaje
+
+- [ ] napisati potpune Docker upute od čistog klona
+- [ ] dokumentirati development/debug pokretanje
+- [ ] dokumentirati test naredbe
+- [ ] dokumentirati arhitekturu i model podataka
+- [ ] dokumentirati API i HTTP semantiku
+- [ ] dokumentirati odluke i trade-offove
+- [ ] iskreno navesti sve poznate nedostatke
+- [ ] ručno proći README na čistom okruženju
+- [ ] provjeriti Git status i sadržaj repozitorija
+- [ ] završni end-to-end smoke test
+
+Kriterij završetka: evaluator može samo iz README-a podići, koristiti i testirati rješenje.
+
+---
+
+## 15. Quality gate prije završetka svake sesije
+
+Na kraju svake radne sesije:
+
+- [ ] ažurirati checkliste u ovom dokumentu
+- [ ] zapisati što je napravljeno u Session log
+- [ ] zapisati točan sljedeći korak
+- [ ] pokrenuti testove relevantne za promijenjeni dio
+- [ ] provjeriti `git status`
+- [ ] ne ostaviti tajne, debug ispise ili slučajne generirane datoteke
+- [ ] ne tvrditi da je nešto završeno ako nije provjereno
+
+## 16. Završna definicija gotovog proizvoda
+
+Projekt je gotov kada:
+
+- sva obvezna funkcionalnost i dogovoreni dodaci rade end-to-end
+- Docker razvojno okruženje radi prema README-u
+- backend, frontend i baza imaju čistu podjelu odgovornosti
+- osnovni testovi prolaze
+- build, lint i typecheck prolaze
+- nema mrtvog koda ni scaffolding ostataka
+- HTTP statusi i API greške su konzistentni
+- README je potpun i iskren
+- Git repozitorij sadrži samo namjerne datoteke
+
+---
+
+## 17. Session log
+
+### Sesija 1 — planiranje
+
+Status: završeno
+
+Napravljeno:
+
+- analiziran izvorni zadatak
+- odabran React + TypeScript + Vite frontend
+- odabran Laravel backend
+- odabran PostgreSQL
+- dogovoren adjacency-list model stabla
+- dogovoreni search scopeovi i autocomplete
+- dogovoren backend-controlled Undo od 10 sekundi
+- dogovoreni dupli nazivi, ekstenzije i ikone
+- dogovoreni sidebar, breadcrumbs, Back, list/grid i New modal UX
+- potvrđeno da nema stvarnog uploada sadržaja
+- ugrađeni kriteriji evaluacije iz dodatne poruke poslodavca
+- izrađen ovaj projektni plan
+
+Sljedeći korak:
+
+> Prije bilo kakve implementacije zajedno pregledati Fazu 0, zatim uz odobrenje inicijalizirati Git i provjeriti lokalne verzije/Docker okruženje.
+
+### Sesija 2 — početak implementacije
+
+Status: djelomično završeno; Docker engine je vanjski blocker za backend dio
+
+Napravljeno:
+
+- inicijaliziran Git repozitorij na grani `main`
+- dodan početni root `.gitignore`
+- provjereni Git, Node, npm, Docker CLI i Docker Compose
+- potvrđeno da lokalni PHP i Composer nisu instalirani te da će se koristiti kroz Docker
+- prema službenoj dokumentaciji odabrani Laravel 13, PHP 8.4, PostgreSQL 18, Node 24 i Tailwind 4
+- scaffoldan React + TypeScript + Vite frontend
+- instalirani i zaključani dogovoreni runtime i testni dependencyji
+- postavljeni Tailwind Vite plugin, React Router i TanStack Query provider
+- uklonjen Vite demo sadržaj
+- dodan početni smoke test
+- uspješno prošli frontend build, lint i test
+
+Blokada:
+
+- Docker Desktop ostaje na `Starting the Docker engine`
+- aktivni Docker context je `desktop-linux`, ali njegova WSL distribucija je zaustavljena
+- Docker API vraća HTTP 500 čak i uz kompatibilnosnu provjeru starije API verzije
+- nije napravljen agresivniji WSL/sistemski zahvat
+
+Sljedeći korak:
+
+> Nakon što Docker Desktop engine normalno proradi, scaffoldati Laravel backend kroz Docker/Composer te dovršiti Compose osnovu. Frontend temelj u međuvremenu je spreman.
