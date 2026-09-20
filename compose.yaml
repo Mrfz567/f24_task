@@ -35,13 +35,29 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
 
+  test-database:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: f24_filesystem_test
+      POSTGRES_USER: f24
+      POSTGRES_PASSWORD: f24_test_password
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    tmpfs:
+      - /var/lib/postgresql
+
   backend-init:
     build:
       context: ./backend
     command:
       - sh
       - -c
-      - composer install --no-interaction --prefer-dist && php artisan migrate --force
+      - composer install --no-interaction --prefer-dist && php artisan migrate --seed --force
     environment: *backend-environment
     depends_on:
       database:
@@ -56,10 +72,11 @@ services:
       context: ./backend
     command:
       - php
-      - artisan
-      - serve
-      - --host=0.0.0.0
-      - --port=8000
+      - -S
+      - 0.0.0.0:8000
+      - -t
+      - public
+      - public/index.php
     environment: *backend-environment
     depends_on:
       backend-init:

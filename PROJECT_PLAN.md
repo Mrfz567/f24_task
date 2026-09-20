@@ -20,7 +20,8 @@ Oznake:
 - [x] Git repozitorij je inicijaliziran na grani `main`.
 - [x] Frontend i Laravel backend osnove su scaffoldane i provjerene.
 - [x] Docker Compose podiže frontend, API, queue worker i zdravu PostgreSQL bazu.
-- [ ] Sljedeći korak: prije Faze 2 potvrditi konačnu shemu baze i backend jezgru.
+- [x] Faza 2: baza i backend jezgra su implementirane i provjerene.
+- [ ] Sljedeći korak: prije Faze 3 potvrditi detalje search API-ja i response oblika.
 
 ---
 
@@ -302,7 +303,7 @@ Jedno korisničko brisanje predstavlja jednu grupu, čak i kada briše cijelo po
 | `created_at` | Vrijeme pokretanja brisanja |
 | `updated_at` | Vrijeme zadnje promjene statusa |
 
-Točni tipovi ID-jeva i indeksi zaključavaju se tijekom migracija. Preferira se nepredvidivi javni identifikator za URL/API korištenje.
+Zapisi i Undo grupe koriste PostgreSQL UUID primarne ključeve, a Undo token je zaseban nasumični UUID. Constrainti i indeksi definirani su u migracijama i provjereni na izoliranoj PostgreSQL testnoj bazi.
 
 ### 5.4 Pravila podataka
 
@@ -696,15 +697,15 @@ Potrebno je osigurati:
 
 ### 13.1 Backend feature/integration testovi
 
-- [ ] stvaranje mape
-- [ ] stvaranje podmape
-- [ ] stvaranje datoteke
-- [ ] odbijanje roditelja koji je datoteka
-- [ ] validacija naziva
-- [ ] automatski `(1)`, `(2)` nazivi
-- [ ] duplikati neovisno o velikim/malim slovima
+- [x] stvaranje mape
+- [x] stvaranje podmape
+- [x] stvaranje datoteke
+- [x] odbijanje roditelja koji je datoteka
+- [x] validacija naziva
+- [x] automatski `(1)`, `(2)` nazivi
+- [x] duplikati neovisno o velikim/malim slovima
 - [ ] race-condition zaštita jedinstvenosti
-- [ ] listanje samo aktivne neposredne djece
+- [x] listanje samo aktivne neposredne djece
 - [ ] točna pretraga u trenutnom podstablu
 - [ ] globalna točna pretraga
 - [ ] prefix search i limit od 10
@@ -719,7 +720,7 @@ Potrebno je osigurati:
 - [ ] preimenovanje datoteke i mape
 - [ ] konflikt pri preimenovanju
 - [ ] zaštita Root zapisa
-- [ ] očekivani HTTP statusi i JSON oblici
+- [x] očekivani HTTP statusi i JSON oblici za create/list/tree/breadcrumbs API
 
 ### 13.2 Frontend component/integration testovi
 
@@ -790,16 +791,16 @@ Kriterij završetka: jedna dokumentirana Docker naredba podiže frontend, API, w
 
 ### Faza 2 — Baza i backend jezgra
 
-- [ ] migracije za `entries` i `deletion_batches`
-- [ ] queue tablice i konfiguracija database queuea
-- [ ] Root seed/init logika
-- [ ] Eloquent modeli i relacije
-- [ ] constrainti i indeksi
-- [ ] CreateEntry action i unique-name generator
-- [ ] listanje sadržaja mape
-- [ ] folder tree endpoint
-- [ ] breadcrumbs endpoint
-- [ ] backend testovi ove faze
+- [x] migracije za `entries` i `deletion_batches`
+- [x] queue tablice i konfiguracija database queuea
+- [x] Root seed/init logika
+- [x] Eloquent modeli i relacije
+- [x] constrainti i indeksi
+- [x] CreateEntry action i unique-name generator
+- [x] listanje sadržaja mape
+- [x] folder tree endpoint
+- [x] breadcrumbs endpoint
+- [x] backend testovi ove faze
 
 Kriterij završetka: API pouzdano stvara i lista hijerarhiju te provodi sva pravila naziva.
 
@@ -1009,3 +1010,27 @@ Napravljeno:
 Sljedeći korak:
 
 > Prije početka Faze 2 zajedno potvrditi konačna polja, tipove, constraintove i indekse tablica `entries` i `deletion_batches`.
+
+### Sesija 4 — baza i backend jezgra
+
+Status: završeno
+
+Napravljeno:
+
+- potvrđena i implementirana UUID adjacency-list shema za `entries`
+- implementirane `deletion_batches`, statusni enum i veze potrebne za budući Undo
+- dodani PostgreSQL constrainti za tipove, status, jedan Root i konzistentno stanje privremenog brisanja
+- dodani case-insensitive unique i prefix indeksi nad nazivima
+- Root se stvara idempotentnim seederom
+- dodani Eloquent modeli, relacije, enum castovi i factoryji
+- implementirani `CreateEntry` i reusable generator slobodnog naziva
+- implementirani folder contents, folder tree i breadcrumbs endpointi
+- dodani Form Request validacija i jedinstveni API Resource oblik
+- dodana izolirana PostgreSQL testna baza koja ne dira razvojne podatke
+- ispravljena Docker API server naredba tako da Compose varijable imaju prednost pred lokalnim `.env`
+- uspješno prošlo 18 backend testova s 81 assertionom
+- potvrđeni stvarni development health i folder tree endpointi
+
+Sljedeći korak:
+
+> Prije Faze 3 zajedno potvrditi query parametre i JSON oblik exact searcha i prefix suggestions endpointa.

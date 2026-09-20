@@ -11,9 +11,10 @@ The repository is organized as a small monorepo:
 
 ## Current status
 
-The application foundation and Docker environment are complete. The API health check,
-frontend shell, PostgreSQL connection and database-backed queue worker are running.
-File-system features are being implemented incrementally and are not complete yet.
+The application foundation, Docker environment and core hierarchy API are complete.
+Folders and files can be created and browsed through the API, including the folder tree
+and breadcrumbs. Search, rename, delete/Undo and the complete frontend UI are not yet
+implemented.
 
 The implementation plan and current progress are documented in
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
@@ -54,6 +55,31 @@ docker compose down
 PostgreSQL data is kept in a named Docker volume between runs. To also remove local
 database data, use `docker compose down --volumes` intentionally.
 
+## Available API endpoints
+
+All API routes are prefixed with `http://localhost:8000/api/v1`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health` | API health check |
+| `GET` | `/folders/tree` | Complete active folder tree, including Root |
+| `GET` | `/folders/{folderId}/entries` | Immediate contents of a folder |
+| `GET` | `/entries/{entryId}/breadcrumbs` | Path from Root to an entry |
+| `POST` | `/entries` | Create a folder or file |
+
+Example request body for `POST /entries`:
+
+```json
+{
+  "parent_id": "root-or-folder-uuid",
+  "type": "file",
+  "name": "project_notes.docx"
+}
+```
+
+Duplicate names are resolved automatically with `(1)`, `(2)` and subsequent numbers.
+For files, the number is inserted before the final extension.
+
 ## Development checks
 
 Run these commands while the Docker environment is running:
@@ -65,3 +91,6 @@ docker compose exec frontend npm run lint
 docker compose exec frontend npm run test
 docker compose exec frontend npm run build
 ```
+
+Backend tests use the isolated `test-database` Compose service and do not reset the
+development database.
