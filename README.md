@@ -96,7 +96,6 @@ The repository is a small monorepo:
 frontend/       React UI, routing, API client and integration tests
 backend/        Laravel domain actions, HTTP API, jobs, migrations and tests
 compose.yaml    database, test database, API, worker and frontend services
-PROJECT_PLAN.md implementation decisions and session history
 ```
 
 The UI does not contain filesystem business rules. Laravel actions own validation,
@@ -158,6 +157,3 @@ returns its existing token and does not restart the timer.
 - Display preferences are local to each browser and are not stored in the database.
 - Core behavior is covered by backend feature tests and frontend integration tests.
   A separate Playwright browser suite was not added to keep the solution focused.
-
-The detailed implementation plan and progress history are available in
-[`PROJECT_PLAN.md`](PROJECT_PLAN.md).
