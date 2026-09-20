@@ -12,9 +12,9 @@ The repository is organized as a small monorepo:
 ## Current status
 
 The application foundation, Docker environment and core hierarchy API are complete.
-Folders and files can be created, browsed and searched through the API, including the
-folder tree and breadcrumbs. Rename, delete/Undo and the complete frontend UI are not
-yet implemented.
+Folders and files can be created, browsed, searched and deleted through the API,
+including recursive deletion with a backend-controlled Undo period. Rename and the
+complete frontend UI are not yet implemented.
 
 The implementation plan and current progress are documented in
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
@@ -68,6 +68,9 @@ All API routes are prefixed with `http://localhost:8000/api/v1`.
 | `POST` | `/entries` | Create a folder or file |
 | `GET` | `/files/search` | Case-insensitive exact file-name search |
 | `GET` | `/files/suggestions` | Up to 10 case-insensitive prefix matches |
+| `DELETE` | `/entries/{entryId}` | Start recursive deletion with a 10-second Undo period |
+| `POST` | `/deletions/{token}/undo` | Restore a pending deletion group |
+| `GET` | `/deletions/pending` | Active Undo timers for refresh recovery |
 
 Example request body for `POST /entries`:
 
@@ -90,6 +93,11 @@ Both search endpoints accept these query parameters:
 
 Folder-scoped searches include the selected folder and all nested folders. Every search
 result includes breadcrumbs from Root to the matching file.
+
+Deletion is finalized by the queue worker even when the browser is closed. Repeating
+`DELETE` for the same pending entry returns `202` with the existing token and expiry;
+it does not restart the timer. Undo after expiry returns `410 Gone`. Deleting Root or
+starting an overlapping parent deletion returns `409 Conflict`.
 
 ## Development checks
 

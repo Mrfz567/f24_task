@@ -22,7 +22,8 @@ Oznake:
 - [x] Docker Compose podiže frontend, API, queue worker i zdravu PostgreSQL bazu.
 - [x] Faza 2: baza i backend jezgra su implementirane i provjerene.
 - [x] Faza 3: exact search i prefix suggestions su implementirani i provjereni.
-- [ ] Sljedeći korak: prije Faze 4 potvrditi rubne slučajeve Delete/Undo statusa i odgovora.
+- [x] Faza 4: rekurzivni Delete, queue purge i backend-controlled Undo su provjereni.
+- [ ] Sljedeći korak: prije Faze 5 potvrditi frontend shell raspored i navigacijske detalje.
 
 ---
 
@@ -712,15 +713,15 @@ Potrebno je osigurati:
 - [x] prefix search i limit od 10
 - [x] prefix search poštuje scope
 - [x] privremeno obrisani zapisi nisu u rezultatima
-- [ ] brisanje datoteke
-- [ ] rekurzivno brisanje mape
-- [ ] Undo unutar 10 sekundi
-- [ ] Undo nakon isteka
-- [ ] idempotentno trajno brisanje
-- [ ] više neovisnih deletion grupa
+- [x] brisanje datoteke
+- [x] rekurzivno brisanje mape
+- [x] Undo unutar 10 sekundi
+- [x] Undo nakon isteka
+- [x] idempotentno trajno brisanje
+- [x] više neovisnih deletion grupa
 - [ ] preimenovanje datoteke i mape
 - [ ] konflikt pri preimenovanju
-- [ ] zaštita Root zapisa
+- [x] zaštita Root zapisa pri brisanju
 - [x] očekivani HTTP statusi i JSON oblici za create/list/tree/breadcrumbs API
 
 ### 13.2 Frontend component/integration testovi
@@ -819,14 +820,14 @@ Kriterij završetka: oba search moda precizno zadovoljavaju specifikaciju i igno
 
 ### Faza 4 — Delete, queue i Undo
 
-- [ ] rekurzivni soft delete u transakciji
-- [ ] kreiranje deletion grupe i tokena
-- [ ] delayed purge job
-- [ ] Undo endpoint
-- [ ] pending deletions endpoint
-- [ ] zaštita od isteklog ili ponovljenog tokena
-- [ ] idempotentnost workera
-- [ ] backend testovi s kontroliranim vremenom
+- [x] rekurzivni soft delete u transakciji
+- [x] kreiranje deletion grupe i tokena
+- [x] delayed purge job
+- [x] Undo endpoint
+- [x] pending deletions endpoint
+- [x] zaštita od isteklog ili ponovljenog tokena
+- [x] idempotentnost workera
+- [x] backend testovi s kontroliranim vremenom
 
 Kriterij završetka: brisanje i Undo rade i bez aktivnog browsera, uključujući refresh i istek roka.
 
@@ -1059,3 +1060,30 @@ Napravljeno:
 Sljedeći korak:
 
 > Prije Faze 4 zajedno potvrditi precizne Delete/Undo statuse za pending, restored, expired i purged grupe.
+
+### Sesija 6 — Delete, queue i Undo
+
+Status: završeno
+
+Napravljeno:
+
+- implementiran rekurzivni soft delete cijelog podstabla u jednoj transakciji
+- svako brisanje dobiva nepredvidivi token i backend `expires_at`
+- queue job trajno briše podstablo nakon konfigurabilnih 10 sekundi
+- purge job je idempotentan i siguran ako se izvrši prerano
+- Undo i purge zaključavaju istu deletion grupu pa ne mogu istodobno pobijediti
+- Undo unutar roka vraća cijelo podstablo, a ponovljeni Undo je idempotentan
+- Undo nakon isteka sinkrono završava purge i vraća `410 Gone`
+- pending endpoint vraća aktivne timere i `server_time` za oporavak nakon refresha
+- ponovljeni DELETE istog zapisa vraća postojeći `202` bez resetiranja timera
+- preklapajuće brisanje roditeljske mape vraća strukturirani `409 Conflict`
+- Root je zaštićen od brisanja
+- omogućeno je više neovisnih deletion grupa
+- privremeno obrisani naziv ostaje rezerviran do purgea
+- dodan partial unique indeks za aktivnu deletion grupu istog root zapisa
+- uspješno prošlo 39 backend testova sa 193 assertiona
+- migracija je primijenjena, worker restartan, a pending endpoint provjeren u developmentu
+
+Sljedeći korak:
+
+> Prije Faze 5 zajedno potvrditi konačni raspored AppShella, sidebar širinu i ponašanje na manjim desktop prozorima.
