@@ -108,7 +108,7 @@ Sve konkretne dependency verzije zaključava Composer/npm lockfile. Ne koristimo
 | Jezik frontenda | TypeScript u strict načinu | Tipovi API odgovora, sigurniji refactoring i čitljiviji ugovori između komponenti |
 | Frontend build alat | Vite | Brz development server, jednostavan React/TypeScript build i malo nepotrebnog scaffolding koda |
 | Stilovi | Tailwind CSS | Brza izrada dosljednog, profesionalnog sučelja bez uvođenja cijelog UI frameworka |
-| Routing | React Router | URL predstavlja otvorenu mapu; podržava deep link, refresh, Back i navigaciju kroz breadcrumbs |
+| Routing | React Router | URL predstavlja otvorenu mapu; podržava deep link, refresh i navigaciju kroz breadcrumbs |
 | Server-state | TanStack Query | Dohvaćanje, cacheiranje, invalidacija i ponovno učitavanje stabla, sadržaja, searcha i Undo stanja |
 | HTTP klijent | Native `fetch` iza našeg API sloja | Dovoljan za ovaj opseg; izbjegava dependency koji nema jasnu dodatnu vrijednost |
 | File ikone | `@react-symbols/icons` | Velik skup React/TypeScript SVG ikona i automatski izbor prema nazivu/ekstenziji |
@@ -185,7 +185,6 @@ Ovaj sažetak čuva ne samo *što* koristimo nego i *zašto*, kako se odluke ne 
 | Exact search | Case-insensitive točan naziv datoteke | Odvojeno ponašanje od suggestionsa |
 | Sidebar | Klikabilno, sklopivo stablo mapa | Klik na granu otvara mapu u glavnom prikazu |
 | Breadcrumbs | Klikabilni preci | Brza izravna navigacija prema višoj mapi |
-| Back | Povijest prethodno posjećenih lokacija | Nije isto što i odlazak u roditelja |
 | Prikaz sadržaja | List default, grid/card opcionalno | Profesionalan detaljni prikaz i korisnička preferencija |
 | Ekstenzije | Vizualni on/off, stvarni naziv se ne mijenja | Postavka ne utječe na API, search, duplicate ili rename logiku |
 | UI persistence | localStorage | Ostaje nakon zatvaranja browsera; cookie nije potreban |
@@ -240,7 +239,6 @@ Promjena bilo koje potvrđene odluke upisuje se u ovaj dokument prije ili zajedn
 - preimenovanje datoteka i mapa
 - klikabilno stablo mapa u sidebaru
 - klikabilni breadcrumbs
-- Back navigacija prema povijesti posjećenih lokacija
 - list prikaz kao zadani i grid/card prikaz kao opcija
 - skrivanje/prikaz ekstenzija kao isključivo vizualna postavka
 - ikone prema ekstenziji datoteke
@@ -466,7 +464,6 @@ Kada je checkbox označen:
 
 #### Glavni sadržaj
 
-- Back gumb prije breadcrumbsa
 - klikabilni breadcrumbs
 - naslov trenutačne mape
 - toggle između list i grid prikaza
@@ -477,8 +474,6 @@ Kada je checkbox označen:
 
 - URL predstavlja trenutačno otvorenu mapu
 - klik u sidebaru, breadcrumbu ili search rezultatu ažurira URL
-- Back vraća prethodno posjećenu lokaciju, a ne nužno roditeljsku mapu
-- kada nema prethodne lokacije unutar aplikacije, Back je onemogućen
 - breadcrumbs služe za izravan odlazak u bilo kojeg pretka
 - deep link i refresh moraju ponovno otvoriti istu mapu
 
@@ -652,7 +647,6 @@ Planirane reusable cjeline:
 - `AppShell`
 - `FolderTree`
 - `Breadcrumbs`
-- `BackButton`
 - `EntryIcon`
 - `EntryName`
 - `EntryActions`
@@ -726,14 +720,13 @@ Potrebno je osigurati:
 
 ### 13.2 Frontend component/integration testovi
 
-- [ ] prikaz sadržaja mape
+- [x] prikaz sadržaja mape
 - [ ] list/grid toggle i localStorage
 - [ ] Show file extensions i localStorage
 - [ ] ikona prema ekstenziji i fallback ikona
 - [ ] prazna/neprazna folder ikona
-- [ ] sidebar navigacija
-- [ ] klikabilni breadcrumbs
-- [ ] Back ponašanje
+- [x] sidebar navigacija
+- [x] klikabilni breadcrumbs
 - [ ] New izbornik i create modali
 - [ ] Rename modal
 - [ ] delete potvrda
@@ -741,8 +734,8 @@ Potrebno je osigurati:
 - [ ] obnova pending Undo stanja nakon refresha
 - [ ] search placeholder ovisno o checkboxu
 - [ ] autocomplete s najviše 10 rezultata
-- [ ] prikaz API i validacijskih grešaka
-- [ ] empty state
+- [x] prikaz API grešaka
+- [x] empty state
 
 ### 13.3 End-to-end happy pathovi
 
@@ -833,15 +826,14 @@ Kriterij završetka: brisanje i Undo rade i bez aktivnog browsera, uključujući
 
 ### Faza 5 — Frontend shell i navigacija
 
-- [ ] AppShell i osnovni Tailwind design tokeni
-- [ ] header
-- [ ] sidebar i folder tree
-- [ ] route za otvorenu mapu
-- [ ] glavni prikaz sadržaja
-- [ ] Back gumb i history ponašanje
-- [ ] klikabilni breadcrumbs
-- [ ] loading, error i empty stanja
-- [ ] frontend testovi navigacije
+- [x] AppShell i osnovni Tailwind design tokeni
+- [x] header
+- [x] sidebar i folder tree
+- [x] route za otvorenu mapu
+- [x] glavni prikaz sadržaja
+- [x] klikabilni breadcrumbs
+- [x] loading, error i empty stanja
+- [x] frontend testovi navigacije
 
 Kriterij završetka: korisnik može intuitivno pregledavati cijelo stablo i refresh zadržava lokaciju.
 
@@ -953,7 +945,7 @@ Napravljeno:
 - dogovoreni search scopeovi i autocomplete
 - dogovoren backend-controlled Undo od 10 sekundi
 - dogovoreni dupli nazivi, ekstenzije i ikone
-- dogovoreni sidebar, breadcrumbs, Back, list/grid i New modal UX
+- dogovoreni sidebar, breadcrumbs, list/grid i New modal UX
 - potvrđeno da nema stvarnog uploada sadržaja
 - ugrađeni kriteriji evaluacije iz dodatne poruke poslodavca
 - izrađen ovaj projektni plan
@@ -1087,3 +1079,26 @@ Napravljeno:
 Sljedeći korak:
 
 > Prije Faze 5 zajedno potvrditi konačni raspored AppShella, sidebar širinu i ponašanje na manjim desktop prozorima.
+
+### Sesija 7 — frontend shell i navigacija
+
+Status: završeno
+
+Napravljeno:
+
+- implementiran AppShell s headerom, sidebarom i glavnim sadržajem
+- uveden odvojeni typed API i TanStack Query sloj za stablo, sadržaj i breadcrumbs
+- `/folders` se kanonski preusmjerava na stvarni Root URL
+- deep link i refresh zadržavaju otvorenu mapu
+- implementirano sklopivo stablo mapa s označenom aktivnom mapom
+- aktivni put u stablu automatski je otvoren
+- mape se mogu otvoriti iz sidebara i glavne liste
+- implementirani klikabilni breadcrumbs
+- dodani list prikaz te loading, API error/retry i empty stanja
+- prema naknadnom dogovoru izostavljen je Back gumb
+- dodano pet integracijskih testova navigacije
+- uspješno prošli frontend lint, pet Vitest testova i produkcijski build
+
+Sljedeći korak:
+
+> Prije Faze 6 zajedno potvrditi detalje floating New izbornika, modala i ponašanja Rename/Delete akcija u listi.

@@ -13,8 +13,9 @@ The repository is organized as a small monorepo:
 
 The application foundation, Docker environment and core hierarchy API are complete.
 Folders and files can be created, browsed, searched and deleted through the API,
-including recursive deletion with a backend-controlled Undo period. Rename and the
-complete frontend UI are not yet implemented.
+including recursive deletion with a backend-controlled Undo period. The frontend now
+supports folder-tree navigation, direct folder URLs, breadcrumbs and folder contents.
+Rename and the create, search, delete and Undo UI flows are not yet implemented.
 
 The implementation plan and current progress are documented in
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md).

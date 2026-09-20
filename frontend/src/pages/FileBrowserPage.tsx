@@ -1,17 +1,95 @@
+import { useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { AppShell } from '../components/layout/AppShell'
+import { ErrorState } from '../components/ui/ErrorState'
+import { LoadingState } from '../components/ui/LoadingState'
+import {
+  useBreadcrumbs,
+  useFolderEntries,
+  useFolderTree,
+} from '../features/file-browser/api/queries'
+import { Breadcrumbs } from '../features/file-browser/components/Breadcrumbs'
+import { FolderContents } from '../features/file-browser/components/FolderContents'
+import { FolderTree } from '../features/file-browser/components/FolderTree'
+
+function errorMessage(error: Error | null): string {
+  return error?.message ?? 'Please check the API connection and try again.'
+}
+
 export function FileBrowserPage() {
+  const { folderId } = useParams<{ folderId: string }>()
+  const navigate = useNavigate()
+  const treeQuery = useFolderTree()
+  const entriesQuery = useFolderEntries(folderId)
+  const breadcrumbsQuery = useBreadcrumbs(folderId)
+
+  useEffect(() => {
+    if (folderId === undefined && treeQuery.data !== undefined) {
+      navigate(`/folders/${treeQuery.data.id}`, { replace: true })
+    }
+  }, [folderId, navigate, treeQuery.data])
+
+  const sidebar = treeQuery.data === undefined ? (
+    <div aria-label="Loading folder tree" className="animate-pulse space-y-3 p-6">
+      <div className="h-3 w-20 rounded bg-slate-200" />
+      <div className="h-8 rounded bg-slate-100" />
+      <div className="ml-4 h-8 rounded bg-slate-100" />
+    </div>
+  ) : (
+    <FolderTree root={treeQuery.data} selectedFolderId={folderId} />
+  )
+
+  if (treeQuery.isError) {
+    return (
+      <AppShell sidebar={sidebar}>
+        <ErrorState
+          message={errorMessage(treeQuery.error)}
+          onRetry={() => void treeQuery.refetch()}
+          title="We could not load your folders"
+        />
+      </AppShell>
+    )
+  }
+
+  if (folderId === undefined || entriesQuery.isPending || breadcrumbsQuery.isPending) {
+    return (
+      <AppShell sidebar={sidebar}>
+        <LoadingState />
+      </AppShell>
+    )
+  }
+
+  if (entriesQuery.isError || breadcrumbsQuery.isError) {
+    const failedQuery = entriesQuery.isError ? entriesQuery : breadcrumbsQuery
+
+    return (
+      <AppShell sidebar={sidebar}>
+        <ErrorState
+          message={errorMessage(failedQuery.error)}
+          onRetry={() => void failedQuery.refetch()}
+        />
+      </AppShell>
+    )
+  }
+
+  const folder = entriesQuery.data.meta.folder
+  const entries = entriesQuery.data.data
+
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-50 px-8">
-      <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
-          Project foundation
+    <AppShell sidebar={sidebar}>
+      <Breadcrumbs entries={breadcrumbsQuery.data} />
+      <div className="mt-5">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{folder.name}</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          {entries.length === 1 ? '1 item' : `${entries.length} items`}
         </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
-          F24 File System
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          The React, TypeScript, routing, server-state, and Tailwind foundation is ready.
-        </p>
+      </div>
+      <section
+        aria-label={`${folder.name} contents`}
+        className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      >
+        <FolderContents entries={entries} />
       </section>
-    </main>
+    </AppShell>
   )
 }
