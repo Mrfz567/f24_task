@@ -25,6 +25,7 @@ export function DeleteEntryDialog({ entry, error, isDeleting, onClose, onConfirm
       <div className="mt-6 flex justify-end gap-3">
         <button
           className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-slate-500"
+          data-autofocus
           onClick={onClose}
           type="button"
         >

@@ -700,7 +700,7 @@ Potrebno je osigurati:
 - [x] validacija naziva
 - [x] automatski `(1)`, `(2)` nazivi
 - [x] duplikati neovisno o velikim/malim slovima
-- [ ] race-condition zaštita jedinstvenosti
+- [x] race-condition zaštita jedinstvenosti
 - [x] listanje samo aktivne neposredne djece
 - [x] točna pretraga u trenutnom podstablu
 - [x] globalna točna pretraga
@@ -713,8 +713,8 @@ Potrebno je osigurati:
 - [x] Undo nakon isteka
 - [x] idempotentno trajno brisanje
 - [x] više neovisnih deletion grupa
-- [ ] preimenovanje datoteke i mape
-- [ ] konflikt pri preimenovanju
+- [x] preimenovanje datoteke i mape
+- [x] konflikt pri preimenovanju
 - [x] zaštita Root zapisa pri brisanju
 - [x] očekivani HTTP statusi i JSON oblici za create/list/tree/breadcrumbs API
 
@@ -730,7 +730,7 @@ Potrebno je osigurati:
 - [x] New izbornik i create modali
 - [x] Rename modal
 - [x] delete potvrda
-- [ ] globalni Undo toast tijekom navigacije
+- [x] globalni Undo toast tijekom navigacije
 - [x] obnova pending Undo stanja nakon refresha
 - [x] search placeholder ovisno o checkboxu
 - [x] autocomplete s najviše 10 rezultata
@@ -866,21 +866,21 @@ Kriterij završetka: sve create, rename i delete akcije rade kroz UI uz jasnu va
 - [x] `EntryIcon` i extension mapping
 - [x] prazna/neprazna folder ikona
 - [x] Show file extensions
-- [ ] polish hover/focus/disabled stanja
+- [x] polish hover/focus/disabled stanja
 
 Kriterij završetka: sve dogovorene UX funkcionalnosti rade bez duplicirane poslovne logike.
 
 ### Faza 8 — Testovi, robustnost i čišćenje
 
-- [ ] dovršiti backend core testove
-- [ ] dovršiti frontend core testove
+- [x] dovršiti backend core testove
+- [x] dovršiti frontend core testove
 - [ ] dodati Playwright happy pathove
-- [ ] provjeriti input validation i standardni error format
-- [ ] provjeriti HTTP statuse
-- [ ] provjeriti keyboard/focus pristupačnost modala i glavnih akcija
-- [ ] pokrenuti lint, format, typecheck, test i build
-- [ ] ukloniti demo scaffold, mrtav kod i nekorištene dependencyje
-- [ ] provjeriti da nema tajni ni lokalnih artefakata u Gitu
+- [x] provjeriti input validation i standardni error format
+- [x] provjeriti HTTP statuse
+- [x] provjeriti keyboard/focus pristupačnost modala i glavnih akcija
+- [x] pokrenuti lint, format, typecheck, test i build
+- [x] ukloniti demo scaffold, mrtav kod i nekorištene dependencyje
+- [x] provjeriti da nema tajni ni lokalnih artefakata u Gitu
 
 Kriterij završetka: svi quality gateovi prolaze iz čistog checkouta.
 
@@ -1196,3 +1196,28 @@ Napravljeno:
 Sljedeći korak:
 
 > Zajedno pregledati završni UI polish i preostale testove prije Faze 8.
+
+### Sesija 12 — robustnost, pristupačnost i čišćenje
+
+Status: završeno
+
+Napravljeno:
+
+- modalima dodan focus trap, Escape zatvaranje i povrat fokusa na element koji ih je otvorio
+- create/rename input i sigurni Cancel na Delete dijalogu dobili kontrolirani početni fokus
+- New izbornik dobio ispravne menu semantike, početni fokus i Escape ponašanje
+- Settings popover premješta fokus na postavku i vraća ga na zupčanik nakon Escapea
+- modal naslovi i opisi koriste jedinstvene React ID-jeve
+- dodan frontend test da Undo ostaje dostupan tijekom navigacije u drugu mapu
+- dodan integracijski test keyboard fokusa, focus trapa i zatvaranja izbornika/dijaloga
+- potvrđena race-condition zaštita kombinacijom parent-row locka i PostgreSQL UNIQUE indeksa
+- dodan backend test koji potvrđuje case-insensitive jedinstvenost na razini baze
+- pregledani su validacija, strukturirane API greške i HTTP statusi svih ruta
+- uklonjeni su nekorišteni Laravel scaffold paketi `boost`, `pail` i `pao`
+- potvrđeno je da Git ne prati tajne, runtime logove, dependency direktorije ni build output
+- uspješno prošla 43 backend testa s 209 assertiona
+- uspješno prošla 24 frontend testa
+
+Sljedeći korak:
+
+> Dovršiti Fazu 9: proširiti README arhitekturom i trade-offovima te napraviti završni Docker/end-to-end smoke test.

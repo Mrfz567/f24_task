@@ -231,7 +231,7 @@ describe('file browser navigation', () => {
 
     await screen.findByRole('heading', { name: 'Root' })
     await user.click(screen.getByRole('button', { name: 'New' }))
-    await user.click(screen.getByRole('button', { name: 'New folder' }))
+    await user.click(screen.getByRole('menuitem', { name: 'New folder' }))
     await user.type(screen.getByLabelText('Name'), 'Client work')
     await user.click(screen.getByRole('button', { name: 'Create' }))
 
@@ -319,6 +319,57 @@ describe('file browser navigation', () => {
     expect(undoWasRequested).toBe(true)
   })
 
+  it('keeps Undo available while navigating to another folder', async () => {
+    const fallbackApi = successfulApi()
+    const token = 'navigation-deletion-token'
+    const pendingDeletion = {
+      token,
+      status: 'pending',
+      expires_at: new Date(Date.now() + 10_000).toISOString(),
+      already_pending: false,
+      already_restored: false,
+      root_entry: { id: notes.id, name: notes.name, type: notes.type },
+    }
+    let undoWasRequested = false
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = requestPath(input)
+
+        if (path.endsWith(`/entries/${notes.id}`) && init?.method === 'DELETE') {
+          return jsonResponse({ data: pendingDeletion }, 202)
+        }
+
+        if (path.endsWith(`/deletions/${token}/undo`) && init?.method === 'POST') {
+          undoWasRequested = true
+
+          return jsonResponse({ data: { ...pendingDeletion, status: 'restored' } })
+        }
+
+        return fallbackApi(input, init)
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    await user.click(screen.getByRole('button', { name: 'Delete notes.txt' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(await screen.findByText('notes.txt deleted')).toBeInTheDocument()
+
+    const rootContents = screen.getByRole('region', { name: 'Root contents' })
+    await user.click(within(rootContents).getByRole('button', { name: 'Projects' }))
+
+    expect(await screen.findByRole('heading', { name: 'Projects' })).toBeInTheDocument()
+    expect(screen.getByText('notes.txt deleted')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+    expect(await screen.findByText('notes.txt restored')).toBeInTheDocument()
+    expect(undoWasRequested).toBe(true)
+  })
+
   it('shows backend validation feedback inside the create dialog', async () => {
     const fallbackApi = successfulApi()
 
@@ -341,7 +392,7 @@ describe('file browser navigation', () => {
 
     await screen.findByRole('heading', { name: 'Root' })
     await user.click(screen.getByRole('button', { name: 'New' }))
-    await user.click(screen.getByRole('button', { name: 'New file' }))
+    await user.click(screen.getByRole('menuitem', { name: 'New file' }))
     await user.type(screen.getByLabelText('Name'), 'bad/name')
     await user.click(screen.getByRole('button', { name: 'Create' }))
 
@@ -535,5 +586,42 @@ describe('file browser navigation', () => {
     expect(screen.getByRole('region', { name: 'Root contents' })).toHaveTextContent('notes')
     await user.click(screen.getByRole('button', { name: 'Display settings' }))
     expect(screen.getByRole('checkbox', { name: 'Show file extensions' })).not.toBeChecked()
+  })
+
+  it('supports keyboard focus, trapping and dismissal for menus and dialogs', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    const newButton = screen.getByRole('button', { name: 'New' })
+    await user.click(newButton)
+    expect(screen.getByRole('menuitem', { name: 'New folder' })).toHaveFocus()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByRole('menuitem', { name: 'New file' })).toHaveFocus()
+    await user.keyboard('{ArrowUp}')
+    expect(screen.getByRole('menuitem', { name: 'New folder' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(newButton).toHaveFocus()
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+    await user.click(newButton)
+    await user.keyboard('{Enter}')
+    expect(screen.getByLabelText('Name')).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(screen.getByRole('button', { name: 'Close dialog' })).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('button', { name: 'Close dialog' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(newButton).toHaveFocus()
+
+    const settingsButton = screen.getByRole('button', { name: 'Display settings' })
+    await user.click(settingsButton)
+    expect(screen.getByRole('checkbox', { name: 'Show file extensions' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog', { name: 'Display settings' })).not.toBeInTheDocument()
+    expect(settingsButton).toHaveFocus()
   })
 })

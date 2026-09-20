@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\DeletionBatch;
 use App\Models\Entry;
 use Database\Seeders\RootEntrySeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -77,6 +78,15 @@ class FileSystemApiTest extends TestCase
         $this->postJson('/api/v1/entries', $folderPayload)
             ->assertCreated()
             ->assertJsonPath('data.name', 'Documents (1)');
+    }
+
+    public function test_database_enforces_case_insensitive_sibling_name_uniqueness(): void
+    {
+        Entry::factory()->childOf($this->root)->file('Report.pdf')->create();
+
+        $this->expectException(QueryException::class);
+
+        Entry::factory()->childOf($this->root)->file('report.PDF')->create();
     }
 
     public function test_invalid_names_are_rejected(): void
