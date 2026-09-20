@@ -19,6 +19,11 @@ class FilesystemOperationException extends RuntimeException
         return new self('The Root folder cannot be deleted.', 'root_entry_protected', 409);
     }
 
+    public static function rootCannotBeRenamed(): self
+    {
+        return new self('The Root folder cannot be renamed.', 'root_entry_protected', 409);
+    }
+
     public static function overlappingDeletion(): self
     {
         return new self(

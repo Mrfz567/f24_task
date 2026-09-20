@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Enums\EntryType;
-use Closure;
+use App\Rules\ValidEntryName;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -36,17 +36,7 @@ class StoreEntryRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    $name = (string) $value;
-
-                    if ($name === '.' || $name === '..') {
-                        $fail('The :attribute cannot be "." or "..".');
-                    }
-
-                    if (preg_match('/[\/\\\\\x00-\x1F\x7F]/u', $name) === 1) {
-                        $fail('The :attribute contains an unsupported character.');
-                    }
-                },
+                new ValidEntryName,
             ],
         ];
     }

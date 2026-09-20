@@ -172,4 +172,144 @@ describe('file browser navigation', () => {
     expect(await screen.findByRole('heading', { name: 'Root' })).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText('The folder is temporarily unavailable.')).not.toBeInTheDocument())
   })
+
+  it('creates a folder from the floating New menu', async () => {
+    const fallbackApi = successfulApi()
+    let createBody: unknown
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (requestPath(input).endsWith('/entries') && init?.method === 'POST') {
+          createBody = JSON.parse(String(init.body))
+
+          return jsonResponse({ data: { ...projects, id: 'created-id', name: 'Client work' } }, 201)
+        }
+
+        return fallbackApi(input, init)
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    await user.click(screen.getByRole('button', { name: 'New' }))
+    await user.click(screen.getByRole('button', { name: 'New folder' }))
+    await user.type(screen.getByLabelText('Name'), 'Client work')
+    await user.click(screen.getByRole('button', { name: 'Create' }))
+
+    expect(await screen.findByText('Client work created')).toBeInTheDocument()
+    expect(createBody).toEqual({ parent_id: root.id, type: 'folder', name: 'Client work' })
+  })
+
+  it('renames an entry through its pencil action', async () => {
+    const fallbackApi = successfulApi()
+    let renameBody: unknown
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (requestPath(input).endsWith(`/entries/${notes.id}`) && init?.method === 'PATCH') {
+          renameBody = JSON.parse(String(init.body))
+
+          return jsonResponse({ data: { ...notes, name: 'readme.md' } })
+        }
+
+        return fallbackApi(input, init)
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    await user.click(screen.getByRole('button', { name: 'Rename notes.txt' }))
+    const nameInput = screen.getByLabelText('Name')
+    await user.clear(nameInput)
+    await user.type(nameInput, 'readme.md')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Renamed to readme.md')).toBeInTheDocument()
+    expect(renameBody).toEqual({ name: 'readme.md' })
+  })
+
+  it('confirms deletion and restores the entry from the Undo toast', async () => {
+    const fallbackApi = successfulApi()
+    const token = 'deletion-token'
+    const pendingDeletion = {
+      token,
+      status: 'pending',
+      expires_at: new Date(Date.now() + 10_000).toISOString(),
+      already_pending: false,
+      already_restored: false,
+      root_entry: { id: notes.id, name: notes.name, type: notes.type },
+    }
+    let undoWasRequested = false
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = requestPath(input)
+
+        if (path.endsWith(`/entries/${notes.id}`) && init?.method === 'DELETE') {
+          return jsonResponse({ data: pendingDeletion }, 202)
+        }
+
+        if (path.endsWith(`/deletions/${token}/undo`) && init?.method === 'POST') {
+          undoWasRequested = true
+
+          return jsonResponse({
+            data: { ...pendingDeletion, status: 'restored', already_restored: false },
+          })
+        }
+
+        return fallbackApi(input, init)
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    await user.click(screen.getByRole('button', { name: 'Delete notes.txt' }))
+    expect(screen.getByRole('dialog', { name: 'Delete “notes.txt”?' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText('notes.txt deleted')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+    expect(await screen.findByText('notes.txt restored')).toBeInTheDocument()
+    expect(undoWasRequested).toBe(true)
+  })
+
+  it('shows backend validation feedback inside the create dialog', async () => {
+    const fallbackApi = successfulApi()
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (requestPath(input).endsWith('/entries') && init?.method === 'POST') {
+          return jsonResponse({
+            message: 'The given data was invalid.',
+            errors: { name: ['The name contains an unsupported character.'] },
+          }, 422)
+        }
+
+        return fallbackApi(input, init)
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    await user.click(screen.getByRole('button', { name: 'New' }))
+    await user.click(screen.getByRole('button', { name: 'New file' }))
+    await user.type(screen.getByLabelText('Name'), 'bad/name')
+    await user.click(screen.getByRole('button', { name: 'Create' }))
+
+    expect(await screen.findByText('The name contains an unsupported character.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveAttribute('aria-invalid', 'true')
+  })
 })

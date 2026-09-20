@@ -101,6 +101,49 @@ class FileSystemApiTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('parent_id');
     }
 
+    public function test_it_renames_files_and_folders(): void
+    {
+        $folder = Entry::factory()->childOf($this->root)->folder()->create(['name' => 'Drafts']);
+        $file = Entry::factory()->childOf($folder)->file('draft.txt')->create();
+
+        $this->patchJson("/api/v1/entries/{$folder->id}", ['name' => '  Documents  '])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Documents');
+
+        $this->patchJson("/api/v1/entries/{$file->id}", ['name' => 'notes.md'])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'notes.md');
+
+        $this->assertDatabaseHas('entries', ['id' => $folder->id, 'name' => 'Documents']);
+        $this->assertDatabaseHas('entries', ['id' => $file->id, 'name' => 'notes.md']);
+    }
+
+    public function test_rename_resolves_duplicate_names_before_the_file_extension(): void
+    {
+        Entry::factory()->childOf($this->root)->file('Report.pdf')->create();
+        $file = Entry::factory()->childOf($this->root)->file('Draft.pdf')->create();
+
+        $this->patchJson("/api/v1/entries/{$file->id}", ['name' => 'report.pdf'])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'report (1).pdf');
+    }
+
+    public function test_rename_validates_the_name_and_protects_root(): void
+    {
+        $file = Entry::factory()->childOf($this->root)->file('notes.txt')->create();
+
+        $this->patchJson("/api/v1/entries/{$file->id}", ['name' => 'bad/name'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('name');
+
+        $this->patchJson("/api/v1/entries/{$this->root->id}", ['name' => 'Other root'])
+            ->assertConflict()
+            ->assertExactJson([
+                'message' => 'The Root folder cannot be renamed.',
+                'code' => 'root_entry_protected',
+            ]);
+    }
+
     public function test_it_lists_only_immediate_children_with_folders_first(): void
     {
         $folder = Entry::factory()->childOf($this->root)->folder()->create(['name' => 'Zebra folder']);

@@ -9,8 +9,11 @@ import {
   useFolderTree,
 } from '../features/file-browser/api/queries'
 import { Breadcrumbs } from '../features/file-browser/components/Breadcrumbs'
+import { EntryActionOverlays } from '../features/file-browser/components/EntryActionOverlays'
 import { FolderContents } from '../features/file-browser/components/FolderContents'
 import { FolderTree } from '../features/file-browser/components/FolderTree'
+import { NewEntryButton } from '../features/file-browser/components/NewEntryButton'
+import { useEntryActions } from '../features/file-browser/hooks/useEntryActions'
 
 function errorMessage(error: Error | null): string {
   return error?.message ?? 'Please check the API connection and try again.'
@@ -22,6 +25,7 @@ export function FileBrowserPage() {
   const treeQuery = useFolderTree()
   const entriesQuery = useFolderEntries(folderId)
   const breadcrumbsQuery = useBreadcrumbs(folderId)
+  const actions = useEntryActions(folderId)
 
   useEffect(() => {
     if (folderId === undefined && treeQuery.data !== undefined) {
@@ -88,8 +92,14 @@ export function FileBrowserPage() {
         aria-label={`${folder.name} contents`}
         className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
       >
-        <FolderContents entries={entries} />
+        <FolderContents
+          entries={entries}
+          onDelete={actions.openDeleteDialog}
+          onRename={actions.openRenameDialog}
+        />
       </section>
+      <NewEntryButton onSelect={actions.openCreateDialog} />
+      <EntryActionOverlays actions={actions} />
     </AppShell>
   )
 }

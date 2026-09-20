@@ -839,15 +839,15 @@ Kriterij završetka: korisnik može intuitivno pregledavati cijelo stablo i refr
 
 ### Faza 6 — CRUD UI i preimenovanje
 
-- [ ] floating New gumb i izbornik
-- [ ] reusable modal infrastruktura
-- [ ] New folder modal
-- [ ] New file modal s ručnim unosom naziva
-- [ ] Rename modal
-- [ ] Delete confirmation modal
-- [ ] osvježavanje query cachea nakon mutacija
-- [ ] konzistentne success/error poruke
-- [ ] frontend testovi akcija
+- [x] floating New gumb i izbornik
+- [x] reusable modal infrastruktura
+- [x] New folder modal
+- [x] New file modal s ručnim unosom naziva
+- [x] Rename modal
+- [x] Delete confirmation modal
+- [x] osvježavanje query cachea nakon mutacija
+- [x] konzistentne success/error poruke
+- [x] frontend testovi akcija
 
 Kriterij završetka: sve create, rename i delete akcije rade kroz UI uz jasnu validaciju.
 
@@ -858,8 +858,8 @@ Kriterij završetka: sve create, rename i delete akcije rade kroz UI uz jasnu va
 - [ ] debounce i zaštita od stale rezultata
 - [ ] autocomplete rezultati i putanje
 - [ ] exact search rezultati
-- [ ] globalni Undo toast region
-- [ ] više istodobnih Undo toastova
+- [x] globalni Undo toast region
+- [x] više istodobnih Undo toastova
 - [ ] obnova pending toastova nakon refresha
 - [ ] list/grid prikaz
 - [ ] localStorage postavke
@@ -1102,3 +1102,29 @@ Napravljeno:
 Sljedeći korak:
 
 > Prije Faze 6 zajedno potvrditi detalje floating New izbornika, modala i ponašanja Rename/Delete akcija u listi.
+
+### Sesija 8 — CRUD UI, rename i osnovni Undo
+
+Status: završeno
+
+Napravljeno:
+
+- dodan `PATCH /entries/{entryId}` endpoint za preimenovanje
+- rename koristi ista pravila validacije i rješavanja duplih naziva kao create
+- Root mapa zaštićena je od preimenovanja
+- izdvojen reusable backend validation rule za nazive
+- implementiran floating New gumb s izbornikom za mapu i datoteku
+- implementirana zajednička modal infrastruktura za create, rename i delete
+- datoteka se stvara ručnim unosom punog naziva i ekstenzije
+- akcije u retku prikazane su ikonama olovke i kante s tooltipovima i pristupačnim nazivima
+- Delete confirmation jasno navodi 10-sekundni Undo rok
+- implementiran globalni Undo toast s backend `expires_at` odbrojavanjem
+- podržano je više istodobnih Undo toastova tijekom navigacije
+- TanStack Query cache osvježava se nakon create, rename, delete i Undo mutacija
+- dodane success, API i validation poruke
+- uspješno prošla 42 backend testa sa 206 assertiona
+- uspješno prošlo devet frontend integracijskih testova
+
+Sljedeći korak:
+
+> U Fazi 7 implementirati search UI, obnovu pending Undo toastova nakon refresha, list/grid postavke, ekstenzije i završno mapiranje ikona.

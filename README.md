@@ -14,8 +14,9 @@ The repository is organized as a small monorepo:
 The application foundation, Docker environment and core hierarchy API are complete.
 Folders and files can be created, browsed, searched and deleted through the API,
 including recursive deletion with a backend-controlled Undo period. The frontend now
-supports folder-tree navigation, direct folder URLs, breadcrumbs and folder contents.
-Rename and the create, search, delete and Undo UI flows are not yet implemented.
+supports folder-tree navigation, direct folder URLs, breadcrumbs, folder contents,
+create, rename and delete flows, and a 10-second Undo toast. Search, refresh recovery
+for pending Undo timers, grid view and display preferences are not yet implemented.
 
 The implementation plan and current progress are documented in
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
@@ -67,6 +68,7 @@ All API routes are prefixed with `http://localhost:8000/api/v1`.
 | `GET` | `/folders/{folderId}/entries` | Immediate contents of a folder |
 | `GET` | `/entries/{entryId}/breadcrumbs` | Path from Root to an entry |
 | `POST` | `/entries` | Create a folder or file |
+| `PATCH` | `/entries/{entryId}` | Rename a folder or file |
 | `GET` | `/files/search` | Case-insensitive exact file-name search |
 | `GET` | `/files/suggestions` | Up to 10 case-insensitive prefix matches |
 | `DELETE` | `/entries/{entryId}` | Start recursive deletion with a 10-second Undo period |

@@ -20,3 +20,12 @@ export interface FolderEntriesResponse extends ApiResource<Entry[]> {
     folder: Entry
   }
 }
+
+export interface DeletionBatch {
+  token: string
+  status: 'pending' | 'restored' | 'purged'
+  expires_at: string
+  already_pending: boolean
+  already_restored: boolean
+  root_entry: Pick<Entry, 'id' | 'name' | 'type'> | null
+}
