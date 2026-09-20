@@ -2,7 +2,7 @@ import type { ApiResource, DeletionBatch, Entry, EntryType, FolderEntriesRespons
 import { getJson, sendJson } from './client'
 
 export async function getFolderTree(): Promise<Entry> {
-  const response = await getJson<ApiResource<Entry>>('/folders/tree')
+  const response = await getJson<ApiResource<Entry>>('/entries/tree')
 
   return response.data
 }

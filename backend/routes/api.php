@@ -3,9 +3,9 @@
 use App\Http\Controllers\Api\V1\DeletionController;
 use App\Http\Controllers\Api\V1\EntryBreadcrumbsController;
 use App\Http\Controllers\Api\V1\EntryController;
+use App\Http\Controllers\Api\V1\EntryTreeController;
 use App\Http\Controllers\Api\V1\FileSearchController;
 use App\Http\Controllers\Api\V1\FolderEntriesController;
-use App\Http\Controllers\Api\V1\FolderTreeController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
 
@@ -16,7 +16,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ]);
     })->name('health');
 
-    Route::get('/folders/tree', FolderTreeController::class)->name('folders.tree');
+    Route::get('/entries/tree', EntryTreeController::class)->name('entries.tree');
     Route::get('/folders/{folder}/entries', FolderEntriesController::class)->name('folders.entries.index');
     Route::get('/entries/{entry}/breadcrumbs', EntryBreadcrumbsController::class)->name('entries.breadcrumbs');
     Route::post('/entries', [EntryController::class, 'store'])->name('entries.store');

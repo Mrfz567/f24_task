@@ -1,4 +1,4 @@
-import { Folder, FolderOpen } from '@react-symbols/icons'
+import { Document, Folder, FolderOpen } from '@react-symbols/icons'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Entry } from '../types'
@@ -50,13 +50,27 @@ export function FolderTree({ root, selectedFolderId }: FolderTreeProps) {
     })
   }
 
-  function renderFolder(folder: Entry, depth: number) {
-    const isExpanded = visibleExpandedIds.has(folder.id)
-    const isSelected = folder.id === selectedFolderId
-    const hasChildren = folder.children.length > 0
+  function renderEntry(entry: Entry, depth: number) {
+    if (entry.type === 'file') {
+      return (
+        <li key={entry.id}>
+          <div
+            className="flex items-center gap-2 rounded-lg py-2 pr-2 text-sm text-slate-500"
+            style={{ paddingLeft: `${depth * 16 + 31}px` }}
+          >
+            <Document aria-hidden="true" height={18} width={18} />
+            <span className="truncate">{entry.name}</span>
+          </div>
+        </li>
+      )
+    }
+
+    const isExpanded = visibleExpandedIds.has(entry.id)
+    const isSelected = entry.id === selectedFolderId
+    const hasChildren = entry.children.length > 0
 
     return (
-      <li key={folder.id}>
+      <li key={entry.id}>
         <div
           className={`group flex items-center rounded-lg pr-2 transition ${
             isSelected ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'
@@ -64,11 +78,11 @@ export function FolderTree({ root, selectedFolderId }: FolderTreeProps) {
           style={{ paddingLeft: `${depth * 16 + 4}px` }}
         >
           <button
-            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${folder.name}`}
+            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${entry.name}`}
             className={`grid size-7 shrink-0 place-items-center rounded focus-visible:outline-2 focus-visible:outline-blue-600 ${
               hasChildren ? 'visible' : 'invisible'
             }`}
-            onClick={() => toggle(folder.id)}
+            onClick={() => toggle(entry.id)}
             type="button"
           >
             <span aria-hidden="true" className={`text-[10px] transition ${isExpanded ? 'rotate-90' : ''}`}>
@@ -78,7 +92,7 @@ export function FolderTree({ root, selectedFolderId }: FolderTreeProps) {
           <button
             aria-current={isSelected ? 'page' : undefined}
             className="flex min-w-0 flex-1 items-center gap-2 py-2 text-left text-sm font-medium focus-visible:outline-2 focus-visible:outline-blue-600"
-            onClick={() => navigate(`/folders/${folder.id}`)}
+            onClick={() => navigate(`/folders/${entry.id}`)}
             type="button"
           >
             {isExpanded ? (
@@ -86,10 +100,10 @@ export function FolderTree({ root, selectedFolderId }: FolderTreeProps) {
             ) : (
               <Folder aria-hidden="true" width={19} height={19} />
             )}
-            <span className="truncate">{folder.name}</span>
+            <span className="truncate">{entry.name}</span>
           </button>
         </div>
-        {hasChildren && isExpanded ? <ul>{folder.children.map((child) => renderFolder(child, depth + 1))}</ul> : null}
+        {hasChildren && isExpanded ? <ul>{entry.children.map((child) => renderEntry(child, depth + 1))}</ul> : null}
       </li>
     )
   }
@@ -97,7 +111,7 @@ export function FolderTree({ root, selectedFolderId }: FolderTreeProps) {
   return (
     <nav aria-label="Folder tree" className="p-4">
       <p className="px-2 pb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Folders</p>
-      <ul>{renderFolder(root, 0)}</ul>
+      <ul>{renderEntry(root, 0)}</ul>
     </nav>
   )
 }

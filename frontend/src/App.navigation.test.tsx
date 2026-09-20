@@ -32,9 +32,22 @@ const notes: Entry = {
   has_children: false,
 }
 
+const brief: Entry = {
+  ...notes,
+  id: 'brief-id',
+  parent_id: projects.id,
+  name: 'brief.pdf',
+}
+
+const treeProjects: Entry = {
+  ...projects,
+  has_children: true,
+  children: [brief],
+}
+
 const tree: Entry = {
   ...root,
-  children: [projects],
+  children: [treeProjects],
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -61,7 +74,7 @@ function successfulApi(): typeof fetch {
   return vi.fn(async (input: RequestInfo | URL) => {
     const path = requestPath(input)
 
-    if (path.endsWith('/folders/tree')) {
+    if (path.endsWith('/entries/tree')) {
       return jsonResponse({ data: tree })
     }
 
@@ -140,6 +153,18 @@ describe('file browser navigation', () => {
     await user.click(within(folderTree).getByRole('button', { name: 'Projects' }))
 
     expect(await screen.findByRole('heading', { name: 'Projects' })).toBeInTheDocument()
+  })
+
+  it('expands a folder to reveal file leaves in the tree', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    const folderTree = screen.getByRole('navigation', { name: 'Folder tree' })
+    await user.click(within(folderTree).getByRole('button', { name: 'Expand Projects' }))
+
+    expect(within(folderTree).getByText('brief.pdf')).toBeInTheDocument()
+    expect(within(folderTree).queryByRole('button', { name: 'brief.pdf' })).not.toBeInTheDocument()
   })
 
   it('shows an API error and can retry the failed request', async () => {

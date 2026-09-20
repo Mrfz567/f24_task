@@ -166,19 +166,21 @@ class FileSystemApiTest extends TestCase
             ->assertJsonCount(2, 'data');
     }
 
-    public function test_folder_tree_contains_nested_folders_but_not_files(): void
+    public function test_entry_tree_contains_nested_folders_and_files(): void
     {
         $firstLevel = Entry::factory()->childOf($this->root)->folder()->create(['name' => 'Projects']);
         $secondLevel = Entry::factory()->childOf($firstLevel)->folder()->create(['name' => 'F24']);
-        Entry::factory()->childOf($secondLevel)->file('brief.pdf')->create();
+        $file = Entry::factory()->childOf($secondLevel)->file('brief.pdf')->create();
 
-        $this->getJson('/api/v1/folders/tree')
+        $this->getJson('/api/v1/entries/tree')
             ->assertOk()
             ->assertJsonPath('data.id', $this->root->id)
             ->assertJsonPath('data.children.0.id', $firstLevel->id)
             ->assertJsonPath('data.children.0.children.0.id', $secondLevel->id)
             ->assertJsonPath('data.children.0.children.0.has_children', true)
-            ->assertJsonCount(0, 'data.children.0.children.0.children');
+            ->assertJsonPath('data.children.0.children.0.children.0.id', $file->id)
+            ->assertJsonPath('data.children.0.children.0.children.0.type', 'file')
+            ->assertJsonCount(0, 'data.children.0.children.0.children.0.children');
     }
 
     public function test_breadcrumbs_are_returned_from_root_to_selected_entry(): void

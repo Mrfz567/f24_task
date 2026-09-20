@@ -183,7 +183,7 @@ Ovaj sažetak čuva ne samo *što* koristimo nego i *zašto*, kako se odluke ne 
 | Placeholderi | `Search this folder` / `Searching everywhere` | Jasno komuniciraju aktivni scope |
 | Suggestions | Starts-with, najviše 10 | Precizna usklađenost sa specifikacijom |
 | Exact search | Case-insensitive točan naziv datoteke | Odvojeno ponašanje od suggestionsa |
-| Sidebar | Klikabilno, sklopivo stablo mapa | Klik na granu otvara mapu u glavnom prikazu |
+| Sidebar | Klikabilno, sklopivo stablo svih zapisa | Mape otvaraju glavni prikaz, a datoteke su završni listovi |
 | Breadcrumbs | Klikabilni preci | Brza izravna navigacija prema višoj mapi |
 | Prikaz sadržaja | List default, grid/card opcionalno | Profesionalan detaljni prikaz i korisnička preferencija |
 | Ekstenzije | Vizualni on/off, stvarni naziv se ne mijenja | Postavka ne utječe na API, search, duplicate ili rename logiku |
@@ -237,7 +237,7 @@ Promjena bilo koje potvrđene odluke upisuje se u ovaj dokument prije ili zajedn
 - vraćanje aktivnih Undo obavijesti nakon refresha
 - automatsko rješavanje duplih naziva pri stvaranju
 - preimenovanje datoteka i mapa
-- klikabilno stablo mapa u sidebaru
+- klikabilno stablo mapa i prikaz datoteka u sidebaru
 - klikabilni breadcrumbs
 - list prikaz kao zadani i grid/card prikaz kao opcija
 - skrivanje/prikaz ekstenzija kao isključivo vizualna postavka
@@ -455,7 +455,7 @@ Kada je checkbox označen:
 
 #### Lijevi sidebar
 
-- hijerarhijsko stablo mapa
+- hijerarhijsko stablo mapa i datoteka
 - Root je uvijek na vrhu
 - grane se mogu otvoriti i zatvoriti
 - aktivna mapa je jasno označena
@@ -541,7 +541,7 @@ Konačni nazivi ruta mogu se blago prilagoditi tijekom implementacije, ali seman
 | Metoda i ruta | Namjena | Uspješan status |
 |---|---|---|
 | `GET /api/v1/folders/{id}/entries` | Sadržaj mape | `200` |
-| `GET /api/v1/folders/tree` | Aktivno stablo mapa | `200` |
+| `GET /api/v1/entries/tree` | Aktivno stablo mapa i datoteka | `200` |
 | `GET /api/v1/entries/{id}/breadcrumbs` | Putanja do zapisa/mape | `200` |
 | `POST /api/v1/entries` | Stvaranje datoteke ili mape | `201` |
 | `PATCH /api/v1/entries/{id}` | Preimenovanje | `200` |
@@ -793,7 +793,7 @@ Kriterij završetka: jedna dokumentirana Docker naredba podiže frontend, API, w
 - [x] constrainti i indeksi
 - [x] CreateEntry action i unique-name generator
 - [x] listanje sadržaja mape
-- [x] folder tree endpoint
+- [x] entry tree endpoint za mape i datoteke
 - [x] breadcrumbs endpoint
 - [x] backend testovi ove faze
 
@@ -828,7 +828,7 @@ Kriterij završetka: brisanje i Undo rade i bez aktivnog browsera, uključujući
 
 - [x] AppShell i osnovni Tailwind design tokeni
 - [x] header
-- [x] sidebar i folder tree
+- [x] sidebar i potpuno stablo mapa i datoteka
 - [x] route za otvorenu mapu
 - [x] glavni prikaz sadržaja
 - [x] klikabilni breadcrumbs
@@ -1090,7 +1090,7 @@ Napravljeno:
 - uveden odvojeni typed API i TanStack Query sloj za stablo, sadržaj i breadcrumbs
 - `/folders` se kanonski preusmjerava na stvarni Root URL
 - deep link i refresh zadržavaju otvorenu mapu
-- implementirano sklopivo stablo mapa s označenom aktivnom mapom
+- implementirano sklopivo stablo s označenom aktivnom mapom
 - aktivni put u stablu automatski je otvoren
 - mape se mogu otvoriti iz sidebara i glavne liste
 - implementirani klikabilni breadcrumbs
@@ -1128,3 +1128,22 @@ Napravljeno:
 Sljedeći korak:
 
 > U Fazi 7 implementirati search UI, obnovu pending Undo toastova nakon refresha, list/grid postavke, ekstenzije i završno mapiranje ikona.
+
+### Sesija 9 — datoteke u sidebar stablu
+
+Status: završeno
+
+Napravljeno:
+
+- tree endpoint promijenjen u semantički precizniji `GET /entries/tree`
+- endpoint vraća cijelu aktivnu hijerarhiju mapa i datoteka
+- folder dobiva expand kontrolu kada sadrži mapu ili datoteku
+- datoteke se prikazuju kao neklikabilni završni listovi stabla
+- zadržana je navigacija klikom na mape
+- dodan backend test ugniježđene datoteke u entry stablu
+- dodan frontend test proširivanja mape koja sadrži datoteku
+- uspješno prošla 42 backend testa sa 208 assertiona i 10 frontend testova
+
+Sljedeći korak:
+
+> Nastaviti Fazu 7 sa search UI-jem i obnovom pending Undo toastova nakon refresha.

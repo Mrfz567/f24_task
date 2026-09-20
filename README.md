@@ -64,7 +64,7 @@ All API routes are prefixed with `http://localhost:8000/api/v1`.
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/health` | API health check |
-| `GET` | `/folders/tree` | Complete active folder tree, including Root |
+| `GET` | `/entries/tree` | Complete active folder and file tree, including Root |
 | `GET` | `/folders/{folderId}/entries` | Immediate contents of a folder |
 | `GET` | `/entries/{entryId}/breadcrumbs` | Path from Root to an entry |
 | `POST` | `/entries` | Create a folder or file |
