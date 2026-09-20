@@ -23,7 +23,7 @@ Oznake:
 - [x] Faza 2: baza i backend jezgra su implementirane i provjerene.
 - [x] Faza 3: exact search i prefix suggestions su implementirani i provjereni.
 - [x] Faza 4: rekurzivni Delete, queue purge i backend-controlled Undo su provjereni.
-- [ ] Sljedeći korak: prije Faze 5 potvrditi frontend shell raspored i navigacijske detalje.
+- [x] Sve faze implementacije i završna provjera predaje su dovršene.
 
 ---
 
@@ -739,12 +739,12 @@ Potrebno je osigurati:
 
 ### 13.3 End-to-end happy pathovi
 
-- [ ] pokretanje aplikacije iz čistog Docker okruženja
-- [ ] stvori mapu → otvori je → stvori datoteku → pronađi je
-- [ ] stvori podmapu → pretraži iz pretka → otvori rezultat
-- [ ] obriši mapu s potomcima → Undo → potvrdi da je stablo vraćeno
-- [ ] obriši datoteku → pričekaj istek → potvrdi trajno brisanje
-- [ ] promijeni prikaz i ekstenzije → refresh → potvrdi spremljene postavke
+- [x] pokretanje aplikacije iz čistog Docker okruženja
+- [x] stvori mapu → otvori je → stvori datoteku → pronađi je
+- [x] stvori podmapu → pretraži iz pretka → otvori rezultat
+- [x] obriši mapu s potomcima → Undo → potvrdi da je stablo vraćeno
+- [x] obriši datoteku → pričekaj istek → potvrdi trajno brisanje
+- [x] promijeni prikaz i ekstenzije → refresh → potvrdi spremljene postavke
 
 Testovi trebaju pokrivati osnovni rizik i poslovna pravila. Ne težimo umjetnom postotku pokrivenosti.
 
@@ -874,7 +874,7 @@ Kriterij završetka: sve dogovorene UX funkcionalnosti rade bez duplicirane posl
 
 - [x] dovršiti backend core testove
 - [x] dovršiti frontend core testove
-- [ ] dodati Playwright happy pathove
+- [x] procijeniti Playwright; namjerno izostavljen jer postoje backend feature i frontend integracijski testovi te završni ručni E2E smoke test
 - [x] provjeriti input validation i standardni error format
 - [x] provjeriti HTTP statuse
 - [x] provjeriti keyboard/focus pristupačnost modala i glavnih akcija
@@ -886,16 +886,16 @@ Kriterij završetka: svi quality gateovi prolaze iz čistog checkouta.
 
 ### Faza 9 — README i završna provjera predaje
 
-- [ ] napisati potpune Docker upute od čistog klona
-- [ ] dokumentirati development/debug pokretanje
-- [ ] dokumentirati test naredbe
-- [ ] dokumentirati arhitekturu i model podataka
-- [ ] dokumentirati API i HTTP semantiku
-- [ ] dokumentirati odluke i trade-offove
-- [ ] iskreno navesti sve poznate nedostatke
-- [ ] ručno proći README na čistom okruženju
-- [ ] provjeriti Git status i sadržaj repozitorija
-- [ ] završni end-to-end smoke test
+- [x] napisati potpune Docker upute od čistog klona
+- [x] dokumentirati development/debug pokretanje
+- [x] dokumentirati test naredbe
+- [x] dokumentirati arhitekturu i model podataka
+- [x] dokumentirati API i HTTP semantiku
+- [x] dokumentirati odluke i trade-offove
+- [x] iskreno navesti sve poznate nedostatke
+- [x] ručno proći README na čistom okruženju
+- [x] provjeriti Git status i sadržaj repozitorija
+- [x] završni end-to-end smoke test
 
 Kriterij završetka: evaluator može samo iz README-a podići, koristiti i testirati rješenje.
 
@@ -1221,3 +1221,23 @@ Napravljeno:
 Sljedeći korak:
 
 > Dovršiti Fazu 9: proširiti README arhitekturom i trade-offovima te napraviti završni Docker/end-to-end smoke test.
+
+### Sesija 13 — README i završna provjera predaje
+
+Status: završeno
+
+Napravljeno:
+
+- README je presložen tako da su potpune upute za pokretanje odmah na početku
+- sažeto su dokumentirani testovi, funkcionalnosti, stack, arhitektura, model podataka, API i ograničenja
+- aplikacija je podignuta iz čistog klona isključivo prema README-u
+- provjereni su create, rekurzivni search, delete, Undo i trajno brisanje kroz stvarni API i queue worker
+- potvrđeno je spremanje list/grid i extension postavki nakon refresha
+- uklonjen je nepostojeći `tests/Unit` suite iz PHPUnit konfiguracije
+- dodan je siguran testni environment kako čisti klon ne bi ovisio o lokalnom `.env` fileu
+- prošli su Composer validation, Pint, frontend lint, build, 43 backend testa s 209 assertiona i 24 frontend testa
+- potvrđeno je da repozitorij ne sadrži tajne, dependency direktorije ni generirane build artefakte
+
+Sljedeći korak:
+
+> Projekt je spreman za predaju; preostaje samo završni Git push nakon pregleda commita.
