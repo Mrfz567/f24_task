@@ -18,8 +18,9 @@ Oznake:
 - [x] Pročitan je izvorni zadatak iz `task.txt`.
 - [x] Dogovoreni su funkcionalni i tehnički smjerovi opisani u ovom dokumentu.
 - [x] Git repozitorij je inicijaliziran na grani `main`.
-- [~] Frontend osnova je scaffoldana i provjerena; backend još nije scaffoldan.
-- [ ] Sljedeći korak: osposobiti Docker engine i dovršiti backend/Docker osnovu iz Faze 1.
+- [x] Frontend i Laravel backend osnove su scaffoldane i provjerene.
+- [x] Docker Compose podiže frontend, API, queue worker i zdravu PostgreSQL bazu.
+- [ ] Sljedeći korak: prije Faze 2 potvrditi konačnu shemu baze i backend jezgru.
 
 ---
 
@@ -763,27 +764,27 @@ Testovi trebaju pokrivati osnovni rizik i poslovna pravila. Ne težimo umjetnom 
 - [x] potvrditi da lokalni PHP/Composer nisu potrebni jer se backend izvršava kroz Docker
 - [x] odabrati verzijsku osnovu stacka prema službenoj dokumentaciji
 - [x] potvrditi radni naziv aplikacije `F24 File System` i slug `f24-filesystem`
-- [~] frontend dependency verzije zaključane su u `package-lock.json`; backend `composer.lock` čeka Laravel scaffold
-- [!] pokrenuti/provjeriti Docker engine; Docker CLI i Compose postoje, ali engine trenutačno nije dostupan
+- [x] frontend i backend dependency verzije zaključane su u `package-lock.json` i `composer.lock`
+- [x] pokrenuti i provjeriti Docker engine
 - [x] napraviti prvi namjerni commit s planom i provjerenom frontend osnovom
 
 Kriterij završetka: Git je čist, verzije su dokumentirane i nema aplikacijskog scaffolding otpada.
 
 ### Faza 1 — Scaffold i Docker osnova
 
-- [ ] scaffoldati Laravel backend
+- [x] scaffoldati Laravel backend
 - [x] scaffoldati React + TypeScript + Vite frontend
 - [x] postaviti Tailwind CSS 4 kroz službeni Vite plugin
 - [x] postaviti React Router i TanStack Query providere
 - [x] instalirati `@react-symbols/icons` iza buduće `EntryIcon` integracije
 - [x] postaviti Vitest, React Testing Library i početni smoke test
 - [x] ukloniti Vite demo sadržaj i assete
-- [ ] napraviti Dockerfileove i Compose servise
-- [ ] dodati PostgreSQL healthcheck
-- [ ] povezati API s bazom
-- [ ] postaviti CORS za development
-- [ ] dodati osnovni API health endpoint
-- [ ] potvrditi debug pokretanje end-to-end
+- [x] napraviti Dockerfileove i Compose servise
+- [x] dodati PostgreSQL healthcheck
+- [x] povezati API s bazom
+- [x] postaviti CORS za development
+- [x] dodati osnovni API health endpoint
+- [x] potvrditi debug pokretanje end-to-end
 
 Kriterij završetka: jedna dokumentirana Docker naredba podiže frontend, API, worker i zdravu bazu.
 
@@ -986,3 +987,25 @@ Blokada:
 Sljedeći korak:
 
 > Nakon što Docker Desktop engine normalno proradi, scaffoldati Laravel backend kroz Docker/Composer te dovršiti Compose osnovu. Frontend temelj u međuvremenu je spreman.
+
+### Sesija 3 — Laravel i Docker osnova
+
+Status: završeno
+
+Napravljeno:
+
+- scaffoldan i očišćen Laravel backend
+- dodani razvojni CORS i verzionirani API health endpoint
+- PostgreSQL postavljen kao zadana baza aplikacije
+- dodani Dockerfileovi za backend i frontend
+- dodani Compose servisi za PostgreSQL, inicijalne migracije, API, queue worker i frontend
+- README proširen provjerenim Docker quick-startom i razvojnim provjerama
+- ispravljen PostgreSQL 18 volume path
+- ispravljen API healthcheck da unutar Alpine kontejnera koristi IPv4 adresu `127.0.0.1`
+- potvrđeno da su baza i API zdravi te da API i frontend vraćaju HTTP 200
+- uspješno prošli backend Pint i PHPUnit
+- uspješno prošli frontend lint, Vitest i produkcijski build
+
+Sljedeći korak:
+
+> Prije početka Faze 2 zajedno potvrditi konačna polja, tipove, constraintove i indekse tablica `entries` i `deletion_batches`.
