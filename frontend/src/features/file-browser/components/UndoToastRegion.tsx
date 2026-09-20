@@ -4,6 +4,7 @@ import type { DeletionBatch } from '../types'
 
 interface UndoToastRegionProps {
   deletions: DeletionBatch[]
+  serverTimeOffsetMs: number
   undoingToken?: string
   onExpire: (token: string) => void
   onUndo: (token: string) => void
@@ -12,18 +13,20 @@ interface UndoToastRegionProps {
 interface UndoToastProps {
   deletion: DeletionBatch
   isUndoing: boolean
+  serverTimeOffsetMs: number
   onExpire: (token: string) => void
   onUndo: (token: string) => void
 }
 
-function UndoToast({ deletion, isUndoing, onExpire, onUndo }: UndoToastProps) {
+function UndoToast({ deletion, isUndoing, serverTimeOffsetMs, onExpire, onUndo }: UndoToastProps) {
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
-    Math.max(0, Math.ceil((Date.parse(deletion.expires_at) - Date.now()) / 1_000)),
+    Math.max(0, Math.ceil((Date.parse(deletion.expires_at) - (Date.now() + serverTimeOffsetMs)) / 1_000)),
   )
 
   useEffect(() => {
     function updateTimer() {
-      const remaining = Math.max(0, Math.ceil((Date.parse(deletion.expires_at) - Date.now()) / 1_000))
+      const serverNow = Date.now() + serverTimeOffsetMs
+      const remaining = Math.max(0, Math.ceil((Date.parse(deletion.expires_at) - serverNow) / 1_000))
       setRemainingSeconds(remaining)
 
       if (remaining === 0) {
@@ -31,10 +34,11 @@ function UndoToast({ deletion, isUndoing, onExpire, onUndo }: UndoToastProps) {
       }
     }
 
+    updateTimer()
     const interval = window.setInterval(updateTimer, 250)
 
     return () => window.clearInterval(interval)
-  }, [deletion.expires_at, deletion.token, onExpire])
+  }, [deletion.expires_at, deletion.token, onExpire, serverTimeOffsetMs])
 
   return (
     <div className="w-80 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-white shadow-2xl">
@@ -52,7 +56,7 @@ function UndoToast({ deletion, isUndoing, onExpire, onUndo }: UndoToastProps) {
           onClick={() => onUndo(deletion.token)}
           type="button"
         >
-          {isUndoing ? 'Restoring…' : 'Undo'}
+          {isUndoing ? 'Restoring...' : 'Undo'}
         </button>
       </div>
       <div className="mt-3 h-1 overflow-hidden rounded-full bg-slate-700">
@@ -65,7 +69,13 @@ function UndoToast({ deletion, isUndoing, onExpire, onUndo }: UndoToastProps) {
   )
 }
 
-export function UndoToastRegion({ deletions, undoingToken, onExpire, onUndo }: UndoToastRegionProps) {
+export function UndoToastRegion({
+  deletions,
+  serverTimeOffsetMs,
+  undoingToken,
+  onExpire,
+  onUndo,
+}: UndoToastRegionProps) {
   if (deletions.length === 0) {
     return null
   }
@@ -79,6 +89,7 @@ export function UndoToastRegion({ deletions, undoingToken, onExpire, onUndo }: U
           key={deletion.token}
           onExpire={onExpire}
           onUndo={onUndo}
+          serverTimeOffsetMs={serverTimeOffsetMs}
         />
       ))}
     </section>

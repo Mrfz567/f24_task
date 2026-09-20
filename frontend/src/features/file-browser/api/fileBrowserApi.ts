@@ -1,4 +1,12 @@
-import type { ApiResource, DeletionBatch, Entry, EntryType, FolderEntriesResponse } from '../types'
+import type {
+  ApiResource,
+  DeletionBatch,
+  Entry,
+  EntryType,
+  FileSearchResponse,
+  FolderEntriesResponse,
+  PendingDeletionsResponse,
+} from '../types'
 import { getJson, sendJson } from './client'
 
 export async function getFolderTree(): Promise<Entry> {
@@ -43,4 +51,29 @@ export async function undoDeletion(token: string): Promise<DeletionBatch> {
   const response = await sendJson<ApiResource<DeletionBatch>>(`/deletions/${token}/undo`, 'POST')
 
   return response.data
+}
+
+export function getPendingDeletions(signal?: AbortSignal): Promise<PendingDeletionsResponse> {
+  return getJson<PendingDeletionsResponse>('/deletions/pending', { signal })
+}
+
+export function searchFiles(
+  query: string,
+  folderId: string | undefined,
+  everywhere: boolean,
+  mode: 'exact' | 'suggestions',
+  signal?: AbortSignal,
+): Promise<FileSearchResponse> {
+  const parameters = new URLSearchParams({
+    query,
+    everywhere: String(everywhere),
+  })
+
+  if (!everywhere && folderId !== undefined) {
+    parameters.set('folder_id', folderId)
+  }
+
+  const endpoint = mode === 'exact' ? 'search' : 'suggestions'
+
+  return getJson<FileSearchResponse>(`/files/${endpoint}?${parameters.toString()}`, { signal })
 }

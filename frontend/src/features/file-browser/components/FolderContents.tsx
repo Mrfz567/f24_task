@@ -1,4 +1,5 @@
 import { Document, FluentTrash, Folder } from '@react-symbols/icons'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PencilIcon } from '../../../components/ui/ActionIcons'
 import type { Entry } from '../types'
@@ -6,6 +7,7 @@ import { EmptyFolderState } from './EmptyFolderState'
 
 interface FolderContentsProps {
   entries: Entry[]
+  highlightedEntryId?: string
   onDelete: (entry: Entry) => void
   onRename: (entry: Entry) => void
 }
@@ -22,8 +24,13 @@ function formatDate(value: string | null): string {
   }).format(new Date(value))
 }
 
-export function FolderContents({ entries, onDelete, onRename }: FolderContentsProps) {
+export function FolderContents({ entries, highlightedEntryId, onDelete, onRename }: FolderContentsProps) {
   const navigate = useNavigate()
+  const highlightedRowRef = useRef<HTMLTableRowElement>(null)
+
+  useEffect(() => {
+    highlightedRowRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+  }, [highlightedEntryId])
 
   if (entries.length === 0) {
     return <EmptyFolderState />
@@ -43,9 +50,15 @@ export function FolderContents({ entries, onDelete, onRename }: FolderContentsPr
         <tbody className="divide-y divide-slate-100">
           {entries.map((entry) => {
             const isFolder = entry.type === 'folder'
+            const isHighlighted = entry.id === highlightedEntryId
 
             return (
-              <tr className="group transition hover:bg-slate-50" key={entry.id}>
+              <tr
+                className={`group transition ${isHighlighted ? 'bg-blue-50 ring-2 ring-inset ring-blue-400' : 'hover:bg-slate-50'}`}
+                data-highlighted={isHighlighted ? 'true' : undefined}
+                key={entry.id}
+                ref={isHighlighted ? highlightedRowRef : undefined}
+              >
                 <td className="px-5 py-3.5">
                   {isFolder ? (
                     <button

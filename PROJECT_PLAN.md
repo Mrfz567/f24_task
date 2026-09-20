@@ -727,13 +727,13 @@ Potrebno je osigurati:
 - [ ] prazna/neprazna folder ikona
 - [x] sidebar navigacija
 - [x] klikabilni breadcrumbs
-- [ ] New izbornik i create modali
-- [ ] Rename modal
-- [ ] delete potvrda
+- [x] New izbornik i create modali
+- [x] Rename modal
+- [x] delete potvrda
 - [ ] globalni Undo toast tijekom navigacije
-- [ ] obnova pending Undo stanja nakon refresha
-- [ ] search placeholder ovisno o checkboxu
-- [ ] autocomplete s najviše 10 rezultata
+- [x] obnova pending Undo stanja nakon refresha
+- [x] search placeholder ovisno o checkboxu
+- [x] autocomplete s najviše 10 rezultata
 - [x] prikaz API grešaka
 - [x] empty state
 
@@ -853,14 +853,14 @@ Kriterij završetka: sve create, rename i delete akcije rade kroz UI uz jasnu va
 
 ### Faza 7 — Search, Undo i završni UI detalji
 
-- [ ] search input i `Search everywhere` checkbox
-- [ ] dinamički placeholder
-- [ ] debounce i zaštita od stale rezultata
-- [ ] autocomplete rezultati i putanje
-- [ ] exact search rezultati
+- [x] search input i `Search everywhere` checkbox
+- [x] dinamički placeholder
+- [x] debounce i zaštita od stale rezultata
+- [x] autocomplete rezultati i putanje
+- [x] exact search rezultati
 - [x] globalni Undo toast region
 - [x] više istodobnih Undo toastova
-- [ ] obnova pending toastova nakon refresha
+- [x] obnova pending toastova nakon refresha
 - [ ] list/grid prikaz
 - [ ] localStorage postavke
 - [ ] `EntryIcon` i extension mapping
@@ -1147,3 +1147,27 @@ Napravljeno:
 Sljedeći korak:
 
 > Nastaviti Fazu 7 sa search UI-jem i obnovom pending Undo toastova nakon refresha.
+
+### Sesija 10 — search UI i Undo nakon refresha
+
+Status: završeno
+
+Napravljeno:
+
+- dodan search u sredinu headera s checkboxom `Search everywhere`
+- placeholder se mijenja između `Search this folder` i `Searching everywhere`
+- suggestions se dohvaćaju nakon 300 ms debouncea, uz otkazivanje zastarjelih requestova
+- Enter pokreće exact pretragu punog naziva datoteke
+- dropdown prikazuje najviše 10 rezultata s ikonom i breadcrumb putanjom
+- Escape i klik izvan searcha zatvaraju rezultate
+- klik rezultata otvara njegovu roditeljsku mapu i privremeno označava datoteku
+- search koristi postojeći backend folder scope koji uključuje sve podmape
+- pending deletion grupe dohvaćaju se pri pokretanju aplikacije
+- aktivni Undo toastovi i mogućnost vraćanja sada preživljavaju refresh
+- odbrojavanje koristi backend `server_time`, pa ne ovisi o satu korisnikova računala
+- dodana tri integracijska testa za search scope, exact rezultat i Undo oporavak
+- uspješno prošlo 13 frontend integracijskih testova
+
+Sljedeći korak:
+
+> Prije nastavka Faze 7 zajedno potvrditi detalje list/grid postavke, skrivanja ekstenzija i mapiranja ikona.

@@ -6,6 +6,7 @@ import {
   useRenameEntry,
   useUndoDeletion,
 } from '../api/mutations'
+import { usePendingDeletions } from '../api/queries'
 import type { DeletionBatch, Entry, EntryType } from '../types'
 
 type DialogState =
@@ -32,14 +33,33 @@ export function useEntryActions(folderId: string | undefined) {
   const renameMutation = useRenameEntry()
   const deleteMutation = useDeleteEntry()
   const undoMutation = useUndoDeletion()
+  const pendingDeletionsQuery = usePendingDeletions()
   const [dialog, setDialog] = useState<DialogState>(null)
-  const [deletions, setDeletions] = useState<DeletionBatch[]>([])
+  const [localDeletions, setLocalDeletions] = useState<DeletionBatch[]>([])
+  const [dismissedDeletionTokens, setDismissedDeletionTokens] = useState<Set<string>>(
+    () => new Set(),
+  )
   const [notification, setNotification] = useState<Notification | null>(null)
+  const deletionsByToken = new Map(
+    (pendingDeletionsQuery.data?.data ?? []).map((deletion) => [deletion.token, deletion]),
+  )
+
+  for (const deletion of localDeletions) {
+    deletionsByToken.set(deletion.token, deletion)
+  }
+
+  const deletions = [...deletionsByToken.values()].filter(
+    (deletion) => !dismissedDeletionTokens.has(deletion.token),
+  )
+  const serverTimeOffsetMs = pendingDeletionsQuery.data === undefined
+    ? 0
+    : Date.parse(pendingDeletionsQuery.data.meta.server_time) - pendingDeletionsQuery.dataUpdatedAt
 
   const closeDialog = useCallback(() => setDialog(null), [])
   const dismissNotification = useCallback(() => setNotification(null), [])
   const removeDeletion = useCallback((token: string) => {
-    setDeletions((current) => current.filter((deletion) => deletion.token !== token))
+    setLocalDeletions((current) => current.filter((deletion) => deletion.token !== token))
+    setDismissedDeletionTokens((current) => new Set(current).add(token))
   }, [])
 
   function openCreateDialog(type: EntryType) {
@@ -97,7 +117,13 @@ export function useEntryActions(folderId: string | undefined) {
     deleteMutation.mutate(dialog.entry.id, {
       onSuccess: (deletion) => {
         closeDialog()
-        setDeletions((current) => [
+        setDismissedDeletionTokens((current) => {
+          const next = new Set(current)
+          next.delete(deletion.token)
+
+          return next
+        })
+        setLocalDeletions((current) => [
           ...current.filter((item) => item.token !== deletion.token),
           deletion,
         ])
@@ -140,6 +166,7 @@ export function useEntryActions(folderId: string | undefined) {
     rename,
     renameError: mutationError(renameMutation.error),
     renameIsPending: renameMutation.isPending,
+    serverTimeOffsetMs,
     undo,
     undoingToken: undoMutation.isPending ? undoMutation.variables : undefined,
   }

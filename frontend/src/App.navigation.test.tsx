@@ -70,12 +70,22 @@ function requestPath(input: RequestInfo | URL): string {
   return new URL(url).pathname
 }
 
+function requestUrl(input: RequestInfo | URL): URL {
+  const url = input instanceof Request ? input.url : String(input)
+
+  return new URL(url)
+}
+
 function successfulApi(): typeof fetch {
   return vi.fn(async (input: RequestInfo | URL) => {
     const path = requestPath(input)
 
     if (path.endsWith('/entries/tree')) {
       return jsonResponse({ data: tree })
+    }
+
+    if (path.endsWith('/deletions/pending')) {
+      return jsonResponse({ data: [], meta: { server_time: new Date().toISOString() } })
     }
 
     if (path.endsWith(`/folders/${root.id}/entries`)) {
@@ -336,5 +346,148 @@ describe('file browser navigation', () => {
 
     expect(await screen.findByText('The name contains an unsupported character.')).toBeInTheDocument()
     expect(screen.getByLabelText('Name')).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('shows scoped suggestions and changes the search scope from the header', async () => {
+    const fallbackApi = successfulApi()
+    const searchRequests: URL[] = []
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = requestUrl(input)
+
+        if (url.pathname.endsWith('/files/suggestions')) {
+          searchRequests.push(url)
+
+          return jsonResponse({
+            data: [{ ...notes, breadcrumbs: [root, notes] }],
+            meta: {
+              query: url.searchParams.get('query'),
+              scope: url.searchParams.get('everywhere') === 'true' ? 'everywhere' : 'folder',
+              folder_id: url.searchParams.get('folder_id'),
+            },
+          })
+        }
+
+        return fallbackApi(input, init)
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    const searchInput = screen.getByRole('searchbox', { name: 'Search files' })
+    expect(searchInput).toHaveAttribute('placeholder', 'Search this folder')
+    await user.type(searchInput, 'not')
+
+    const suggestions = (await screen.findByText('Suggestions')).parentElement!
+    expect(
+      await within(suggestions).findByRole('button', { name: /notes\.txt/i }),
+    ).toBeInTheDocument()
+    expect(searchRequests.at(-1)?.searchParams.get('folder_id')).toBe(root.id)
+    expect(searchRequests.at(-1)?.searchParams.get('everywhere')).toBe('false')
+
+    await user.click(screen.getByRole('checkbox', { name: 'Search everywhere' }))
+    expect(searchInput).toHaveAttribute('placeholder', 'Searching everywhere')
+
+    await waitFor(() => {
+      expect(searchRequests.at(-1)?.searchParams.get('everywhere')).toBe('true')
+      expect(searchRequests.at(-1)?.searchParams.has('folder_id')).toBe(false)
+    })
+  })
+
+  it('runs exact search on Enter and opens the result parent with a highlight', async () => {
+    const fallbackApi = successfulApi()
+    let exactSearchWasRequested = false
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = requestUrl(input)
+
+        if (url.pathname.endsWith('/files/search')) {
+          exactSearchWasRequested = true
+
+          return jsonResponse({
+            data: [{ ...brief, breadcrumbs: [root, projects, brief] }],
+            meta: { query: brief.name, scope: 'folder', folder_id: root.id },
+          })
+        }
+
+        if (url.pathname.endsWith(`/folders/${projects.id}/entries`)) {
+          return jsonResponse(folderResponse(projects, [brief]))
+        }
+
+        return fallbackApi(input, init)
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    const searchInput = screen.getByRole('searchbox', { name: 'Search files' })
+    await user.type(searchInput, `${brief.name}{Enter}`)
+
+    const result = await screen.findByRole('button', { name: /brief\.pdf/i })
+    expect(exactSearchWasRequested).toBe(true)
+    expect(result).toHaveTextContent('Root / Projects')
+    await user.click(result)
+
+    expect(await screen.findByRole('heading', { name: 'Projects' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe(`/folders/${projects.id}`)
+    expect(window.location.search).toBe(`?highlight=${brief.id}`)
+    const projectsContents = screen.getByRole('region', { name: 'Projects contents' })
+    expect(within(projectsContents).getByText(brief.name).closest('tr')).toHaveAttribute(
+      'data-highlighted',
+      'true',
+    )
+  })
+
+  it('restores a pending Undo timer after a page refresh', async () => {
+    const fallbackApi = successfulApi()
+    const token = 'recovered-deletion-token'
+    const pendingDeletion = {
+      token,
+      status: 'pending',
+      expires_at: new Date(Date.now() + 10_000).toISOString(),
+      already_pending: false,
+      already_restored: false,
+      root_entry: { id: notes.id, name: notes.name, type: notes.type },
+    }
+    let undoWasRequested = false
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = requestPath(input)
+
+        if (path.endsWith('/deletions/pending')) {
+          return jsonResponse({
+            data: [pendingDeletion],
+            meta: { server_time: new Date().toISOString() },
+          })
+        }
+
+        if (path.endsWith(`/deletions/${token}/undo`) && init?.method === 'POST') {
+          undoWasRequested = true
+
+          return jsonResponse({ data: { ...pendingDeletion, status: 'restored' } })
+        }
+
+        return fallbackApi(input, init)
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    expect(await screen.findByText('notes.txt deleted')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+    expect(await screen.findByText('notes.txt restored')).toBeInTheDocument()
+    expect(undoWasRequested).toBe(true)
   })
 })

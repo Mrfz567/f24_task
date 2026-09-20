@@ -45,6 +45,7 @@ export function EntryActionOverlays({ actions }: EntryActionOverlaysProps) {
         deletions={actions.deletions}
         onExpire={actions.removeDeletion}
         onUndo={actions.undo}
+        serverTimeOffsetMs={actions.serverTimeOffsetMs}
         undoingToken={actions.undoingToken}
       />
       {actions.notification === null ? null : (

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
 import { ErrorState } from '../components/ui/ErrorState'
 import { LoadingState } from '../components/ui/LoadingState'
@@ -10,6 +10,7 @@ import {
 } from '../features/file-browser/api/queries'
 import { Breadcrumbs } from '../features/file-browser/components/Breadcrumbs'
 import { EntryActionOverlays } from '../features/file-browser/components/EntryActionOverlays'
+import { FileSearch } from '../features/file-browser/components/FileSearch'
 import { FolderContents } from '../features/file-browser/components/FolderContents'
 import { FolderTree } from '../features/file-browser/components/FolderTree'
 import { NewEntryButton } from '../features/file-browser/components/NewEntryButton'
@@ -22,16 +23,33 @@ function errorMessage(error: Error | null): string {
 export function FileBrowserPage() {
   const { folderId } = useParams<{ folderId: string }>()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const treeQuery = useFolderTree()
   const entriesQuery = useFolderEntries(folderId)
   const breadcrumbsQuery = useBreadcrumbs(folderId)
   const actions = useEntryActions(folderId)
+  const highlightedEntryId = searchParams.get('highlight') ?? undefined
+  const headerContent = <FileSearch folderId={folderId} />
 
   useEffect(() => {
     if (folderId === undefined && treeQuery.data !== undefined) {
       navigate(`/folders/${treeQuery.data.id}`, { replace: true })
     }
   }, [folderId, navigate, treeQuery.data])
+
+  useEffect(() => {
+    if (highlightedEntryId === undefined) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      const nextParameters = new URLSearchParams(searchParams)
+      nextParameters.delete('highlight')
+      setSearchParams(nextParameters, { replace: true })
+    }, 3_000)
+
+    return () => window.clearTimeout(timeout)
+  }, [highlightedEntryId, searchParams, setSearchParams])
 
   const sidebar = treeQuery.data === undefined ? (
     <div aria-label="Loading folder tree" className="animate-pulse space-y-3 p-6">
@@ -45,7 +63,7 @@ export function FileBrowserPage() {
 
   if (treeQuery.isError) {
     return (
-      <AppShell sidebar={sidebar}>
+      <AppShell headerContent={headerContent} sidebar={sidebar}>
         <ErrorState
           message={errorMessage(treeQuery.error)}
           onRetry={() => void treeQuery.refetch()}
@@ -57,7 +75,7 @@ export function FileBrowserPage() {
 
   if (folderId === undefined || entriesQuery.isPending || breadcrumbsQuery.isPending) {
     return (
-      <AppShell sidebar={sidebar}>
+      <AppShell headerContent={headerContent} sidebar={sidebar}>
         <LoadingState />
       </AppShell>
     )
@@ -67,7 +85,7 @@ export function FileBrowserPage() {
     const failedQuery = entriesQuery.isError ? entriesQuery : breadcrumbsQuery
 
     return (
-      <AppShell sidebar={sidebar}>
+      <AppShell headerContent={headerContent} sidebar={sidebar}>
         <ErrorState
           message={errorMessage(failedQuery.error)}
           onRetry={() => void failedQuery.refetch()}
@@ -80,7 +98,7 @@ export function FileBrowserPage() {
   const entries = entriesQuery.data.data
 
   return (
-    <AppShell sidebar={sidebar}>
+    <AppShell headerContent={headerContent} sidebar={sidebar}>
       <Breadcrumbs entries={breadcrumbsQuery.data} />
       <div className="mt-5">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{folder.name}</h1>
@@ -94,6 +112,7 @@ export function FileBrowserPage() {
       >
         <FolderContents
           entries={entries}
+          highlightedEntryId={highlightedEntryId}
           onDelete={actions.openDeleteDialog}
           onRename={actions.openRenameDialog}
         />

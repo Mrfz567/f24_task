@@ -15,8 +15,8 @@ The application foundation, Docker environment and core hierarchy API are comple
 Folders and files can be created, browsed, searched and deleted through the API,
 including recursive deletion with a backend-controlled Undo period. The frontend now
 supports folder-tree navigation, direct folder URLs, breadcrumbs, folder contents,
-create, rename and delete flows, and a 10-second Undo toast. Search, refresh recovery
-for pending Undo timers, grid view and display preferences are not yet implemented.
+create, rename and delete flows, scoped/global file search, and backend-timed Undo
+toasts that survive a refresh. Grid view and display preferences are not yet implemented.
 
 The implementation plan and current progress are documented in
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
