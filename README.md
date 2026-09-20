@@ -155,5 +155,8 @@ returns its existing token and does not restart the timer.
 - The app uses one shared Root hierarchy rather than separate user workspaces.
 - Undo durability depends on the included queue worker being active.
 - Display preferences are local to each browser and are not stored in the database.
+- The folder tree, folder contents and exact search results are currently unpaginated and
+  intended for the scope of this assignment; a production-scale version should use lazy
+  tree loading and pagination.
 - Core behavior is covered by backend feature tests and frontend integration tests.
   A separate Playwright browser suite was not added to keep the solution focused.
