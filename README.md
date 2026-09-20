@@ -12,9 +12,9 @@ The repository is organized as a small monorepo:
 ## Current status
 
 The application foundation, Docker environment and core hierarchy API are complete.
-Folders and files can be created and browsed through the API, including the folder tree
-and breadcrumbs. Search, rename, delete/Undo and the complete frontend UI are not yet
-implemented.
+Folders and files can be created, browsed and searched through the API, including the
+folder tree and breadcrumbs. Rename, delete/Undo and the complete frontend UI are not
+yet implemented.
 
 The implementation plan and current progress are documented in
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
@@ -66,6 +66,8 @@ All API routes are prefixed with `http://localhost:8000/api/v1`.
 | `GET` | `/folders/{folderId}/entries` | Immediate contents of a folder |
 | `GET` | `/entries/{entryId}/breadcrumbs` | Path from Root to an entry |
 | `POST` | `/entries` | Create a folder or file |
+| `GET` | `/files/search` | Case-insensitive exact file-name search |
+| `GET` | `/files/suggestions` | Up to 10 case-insensitive prefix matches |
 
 Example request body for `POST /entries`:
 
@@ -79,6 +81,15 @@ Example request body for `POST /entries`:
 
 Duplicate names are resolved automatically with `(1)`, `(2)` and subsequent numbers.
 For files, the number is inserted before the final extension.
+
+Both search endpoints accept these query parameters:
+
+- `query` — required file name or prefix
+- `everywhere` — optional boolean; defaults to `false`
+- `folder_id` — required when `everywhere=false`, ignored otherwise
+
+Folder-scoped searches include the selected folder and all nested folders. Every search
+result includes breadcrumbs from Root to the matching file.
 
 ## Development checks
 

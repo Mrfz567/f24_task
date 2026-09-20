@@ -21,7 +21,8 @@ Oznake:
 - [x] Frontend i Laravel backend osnove su scaffoldane i provjerene.
 - [x] Docker Compose podiže frontend, API, queue worker i zdravu PostgreSQL bazu.
 - [x] Faza 2: baza i backend jezgra su implementirane i provjerene.
-- [ ] Sljedeći korak: prije Faze 3 potvrditi detalje search API-ja i response oblika.
+- [x] Faza 3: exact search i prefix suggestions su implementirani i provjereni.
+- [ ] Sljedeći korak: prije Faze 4 potvrditi rubne slučajeve Delete/Undo statusa i odgovora.
 
 ---
 
@@ -706,11 +707,11 @@ Potrebno je osigurati:
 - [x] duplikati neovisno o velikim/malim slovima
 - [ ] race-condition zaštita jedinstvenosti
 - [x] listanje samo aktivne neposredne djece
-- [ ] točna pretraga u trenutnom podstablu
-- [ ] globalna točna pretraga
-- [ ] prefix search i limit od 10
-- [ ] prefix search poštuje scope
-- [ ] privremeno obrisani zapisi nisu u rezultatima
+- [x] točna pretraga u trenutnom podstablu
+- [x] globalna točna pretraga
+- [x] prefix search i limit od 10
+- [x] prefix search poštuje scope
+- [x] privremeno obrisani zapisi nisu u rezultatima
 - [ ] brisanje datoteke
 - [ ] rekurzivno brisanje mape
 - [ ] Undo unutar 10 sekundi
@@ -806,13 +807,13 @@ Kriterij završetka: API pouzdano stvara i lista hijerarhiju te provodi sva prav
 
 ### Faza 3 — Pretraga
 
-- [ ] rekurzivni folder-scoped exact search
-- [ ] globalni exact search
-- [ ] rekurzivni folder-scoped prefix search
-- [ ] globalni prefix search
-- [ ] limit 10 i determinističan redoslijed
-- [ ] indeksiranje i provjera query plana na smislenom skupu podataka
-- [ ] backend testovi pretrage
+- [x] rekurzivni folder-scoped exact search
+- [x] globalni exact search
+- [x] rekurzivni folder-scoped prefix search
+- [x] globalni prefix search
+- [x] limit 10 i determinističan redoslijed
+- [x] indeksiranje i provjera query plana na smislenom skupu podataka
+- [x] backend testovi pretrage
 
 Kriterij završetka: oba search moda precizno zadovoljavaju specifikaciju i ignoriraju obrisane zapise.
 
@@ -1034,3 +1035,27 @@ Napravljeno:
 Sljedeći korak:
 
 > Prije Faze 3 zajedno potvrditi query parametre i JSON oblik exact searcha i prefix suggestions endpointa.
+
+### Sesija 5 — exact search i prefix suggestions
+
+Status: završeno
+
+Napravljeno:
+
+- implementiran reusable `SearchFiles` use-case za exact i prefix način rada
+- folder scope rekurzivno uključuje odabranu mapu i sve njezine podmape
+- globalni scope pretražuje cijelo aktivno stablo
+- oba načina uspoređuju nazive neovisno o velikim i malim slovima
+- suggestions vraća najviše 10 deterministički sortiranih rezultata
+- znakovi poput `%` tretiraju se kao doslovni dio naziva, ne kao wildcard
+- mape i privremeno obrisane datoteke isključene su iz rezultata
+- svaki rezultat sadrži breadcrumbs od Roota do datoteke
+- breadcrumbs se grade u istom rekurzivnom PostgreSQL upitu bez N+1 upita
+- dodani query validacija, API Resource i oba verzionirana endpointa
+- query plan provjeren na 10.000 privremenih zapisa; PostgreSQL koristi prefix indeks
+- uspješno prošlo 26 backend testova sa 120 assertiona
+- potvrđen stvarni development search endpoint
+
+Sljedeći korak:
+
+> Prije Faze 4 zajedno potvrditi precizne Delete/Undo statuse za pending, restored, expired i purged grupe.
