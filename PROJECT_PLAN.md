@@ -721,10 +721,10 @@ Potrebno je osigurati:
 ### 13.2 Frontend component/integration testovi
 
 - [x] prikaz sadržaja mape
-- [ ] list/grid toggle i localStorage
-- [ ] Show file extensions i localStorage
-- [ ] ikona prema ekstenziji i fallback ikona
-- [ ] prazna/neprazna folder ikona
+- [x] list/grid toggle i localStorage
+- [x] Show file extensions i localStorage
+- [x] ikona prema ekstenziji i fallback ikona
+- [x] prazna/neprazna folder ikona
 - [x] sidebar navigacija
 - [x] klikabilni breadcrumbs
 - [x] New izbornik i create modali
@@ -861,11 +861,11 @@ Kriterij završetka: sve create, rename i delete akcije rade kroz UI uz jasnu va
 - [x] globalni Undo toast region
 - [x] više istodobnih Undo toastova
 - [x] obnova pending toastova nakon refresha
-- [ ] list/grid prikaz
-- [ ] localStorage postavke
-- [ ] `EntryIcon` i extension mapping
-- [ ] prazna/neprazna folder ikona
-- [ ] Show file extensions
+- [x] list/grid prikaz
+- [x] localStorage postavke
+- [x] `EntryIcon` i extension mapping
+- [x] prazna/neprazna folder ikona
+- [x] Show file extensions
 - [ ] polish hover/focus/disabled stanja
 
 Kriterij završetka: sve dogovorene UX funkcionalnosti rade bez duplicirane poslovne logike.
@@ -1171,3 +1171,28 @@ Napravljeno:
 Sljedeći korak:
 
 > Prije nastavka Faze 7 zajedno potvrditi detalje list/grid postavke, skrivanja ekstenzija i mapiranja ikona.
+
+### Sesija 11 — prikazi, postavke i ikone
+
+Status: završeno
+
+Napravljeno:
+
+- dodan list/grid toggle uz naslov trenutačne mape
+- list ostaje zadani prikaz, a izbor se sprema u localStorage
+- grid koristi iste podatke, navigaciju i reusable akcije kao list
+- dodan Settings izbornik u header s postavkom `Show file extensions`
+- postavka ekstenzija sprema se u localStorage i mijenja samo vizualni naziv
+- skriva se samo posljednja ekstenzija, dok `.gitignore` i nazivi bez ekstenzije ostaju isti
+- search, rename, API podaci i accessible nazivi uvijek zadržavaju puni naziv
+- implementirana centralna `EntryIcon` komponenta za sve prikaze zapisa
+- mapirane su ikone za dokumente, slike, audio, video, arhive, baze i česte programske tipove
+- Word, Excel i PowerPoint imaju prepoznatljive `DOC`, `XLS` i `PPT` oznake u svojim bojama
+- nepoznate ekstenzije koriste generičku document ikonu
+- prazne i neprazne mape imaju različite ikone
+- sidebar, search, list i grid koriste istu logiku naziva i ikona
+- dodani integracijski i unit testovi za preference, nazive i ikone
+
+Sljedeći korak:
+
+> Zajedno pregledati završni UI polish i preostale testove prije Faze 8.

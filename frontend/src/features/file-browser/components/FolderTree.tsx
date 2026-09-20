@@ -1,11 +1,13 @@
-import { Document, Folder, FolderOpen } from '@react-symbols/icons'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Entry } from '../types'
+import { displayedEntryName } from '../utils/fileName'
+import { EntryIcon } from './EntryIcon'
 
 interface FolderTreeProps {
   root: Entry
   selectedFolderId?: string
+  showFileExtensions: boolean
 }
 
 function findAncestorIds(entry: Entry, selectedId: string): string[] | null {
@@ -24,7 +26,7 @@ function findAncestorIds(entry: Entry, selectedId: string): string[] | null {
   return null
 }
 
-export function FolderTree({ root, selectedFolderId }: FolderTreeProps) {
+export function FolderTree({ root, selectedFolderId, showFileExtensions }: FolderTreeProps) {
   const navigate = useNavigate()
   const selectedPath = useMemo(
     () => (selectedFolderId === undefined ? null : findAncestorIds(root, selectedFolderId)),
@@ -58,8 +60,10 @@ export function FolderTree({ root, selectedFolderId }: FolderTreeProps) {
             className="flex items-center gap-2 rounded-lg py-2 pr-2 text-sm text-slate-500"
             style={{ paddingLeft: `${depth * 16 + 31}px` }}
           >
-            <Document aria-hidden="true" height={18} width={18} />
-            <span className="truncate">{entry.name}</span>
+            <EntryIcon name={entry.name} size={18} type={entry.type} />
+            <span className="truncate">
+              {displayedEntryName(entry.name, entry.type, showFileExtensions)}
+            </span>
           </div>
         </li>
       )
@@ -95,11 +99,7 @@ export function FolderTree({ root, selectedFolderId }: FolderTreeProps) {
             onClick={() => navigate(`/folders/${entry.id}`)}
             type="button"
           >
-            {isExpanded ? (
-              <FolderOpen aria-hidden="true" width={19} height={19} />
-            ) : (
-              <Folder aria-hidden="true" width={19} height={19} />
-            )}
+            <EntryIcon hasChildren={hasChildren} name={entry.name} size={19} type={entry.type} />
             <span className="truncate">{entry.name}</span>
           </button>
         </div>

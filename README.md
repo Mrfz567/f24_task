@@ -16,7 +16,8 @@ Folders and files can be created, browsed, searched and deleted through the API,
 including recursive deletion with a backend-controlled Undo period. The frontend now
 supports folder-tree navigation, direct folder URLs, breadcrumbs, folder contents,
 create, rename and delete flows, scoped/global file search, and backend-timed Undo
-toasts that survive a refresh. Grid view and display preferences are not yet implemented.
+toasts that survive a refresh. List/grid view, file-extension visibility and file-type
+icons are available as persistent display preferences.
 
 The implementation plan and current progress are documented in
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md).

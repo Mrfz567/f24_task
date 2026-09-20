@@ -1,12 +1,15 @@
-import { Document, FluentSearch } from '@react-symbols/icons'
+import { FluentSearch } from '@react-symbols/icons'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue'
 import { useFileSearch } from '../api/queries'
 import type { FileSearchResult } from '../types'
+import { displayedEntryName } from '../utils/fileName'
+import { EntryIcon } from './EntryIcon'
 
 interface FileSearchProps {
   folderId: string | undefined
+  showFileExtensions: boolean
 }
 
 function resultPath(result: FileSearchResult): string {
@@ -16,7 +19,7 @@ function resultPath(result: FileSearchResult): string {
     .join(' / ')
 }
 
-export function FileSearch({ folderId }: FileSearchProps) {
+export function FileSearch({ folderId, showFileExtensions }: FileSearchProps) {
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState('')
@@ -113,13 +116,16 @@ export function FileSearch({ folderId }: FileSearchProps) {
                 {results.map((result) => (
                   <li key={result.id}>
                     <button
+                      aria-label={`${result.name}, ${resultPath(result)}`}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-blue-50 focus-visible:bg-blue-50 focus-visible:outline-none"
                       onClick={() => openResult(result)}
                       type="button"
                     >
-                      <Document aria-hidden="true" className="shrink-0" height={24} width={24} />
+                      <EntryIcon className="shrink-0" name={result.name} size={24} type={result.type} />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-slate-800">{result.name}</span>
+                        <span className="block truncate text-sm font-medium text-slate-800">
+                          {displayedEntryName(result.name, result.type, showFileExtensions)}
+                        </span>
                         <span className="block truncate text-xs text-slate-500">{resultPath(result)}</span>
                       </span>
                     </button>

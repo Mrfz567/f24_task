@@ -2,10 +2,11 @@ import { FolderBlue } from '@react-symbols/icons'
 import type { ReactNode } from 'react'
 
 interface AppHeaderProps {
+  actions?: ReactNode
   children?: ReactNode
 }
 
-export function AppHeader({ children }: AppHeaderProps) {
+export function AppHeader({ actions, children }: AppHeaderProps) {
   return (
     <header className="relative z-40 flex h-16 items-center border-b border-slate-200 bg-white px-6">
       <div className="flex items-center gap-3">
@@ -22,6 +23,7 @@ export function AppHeader({ children }: AppHeaderProps) {
           {children}
         </div>
       )}
+      {actions === undefined ? null : <div className="ml-auto">{actions}</div>}
     </header>
   )
 }

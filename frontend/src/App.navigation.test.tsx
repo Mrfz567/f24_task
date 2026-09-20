@@ -110,6 +110,7 @@ function successfulApi(): typeof fetch {
 
 describe('file browser navigation', () => {
   beforeEach(() => {
+    window.localStorage.clear()
     window.history.replaceState({}, '', '/folders')
     vi.stubGlobal('fetch', successfulApi())
   })
@@ -489,5 +490,50 @@ describe('file browser navigation', () => {
 
     expect(await screen.findByText('notes.txt restored')).toBeInTheDocument()
     expect(undoWasRequested).toBe(true)
+  })
+
+  it('switches to grid view and restores the preference after remounting', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const rootContents = await screen.findByRole('region', { name: 'Root contents' })
+    expect(within(rootContents).getByRole('table')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Grid view' }))
+
+    expect(within(rootContents).queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Grid view' })).toHaveAttribute('aria-pressed', 'true')
+    expect(window.localStorage.getItem('f24-file-browser-view')).toBe('"grid"')
+
+    cleanup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    expect(screen.getByRole('button', { name: 'Grid view' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('hides only the visual file extension and restores that setting', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    await user.click(screen.getByRole('button', { name: 'Display settings' }))
+    const extensionsCheckbox = screen.getByRole('checkbox', { name: 'Show file extensions' })
+    expect(extensionsCheckbox).toBeChecked()
+    await user.click(extensionsCheckbox)
+
+    const rootContents = screen.getByRole('region', { name: 'Root contents' })
+    expect(within(rootContents).getByText('notes')).toBeInTheDocument()
+    expect(within(rootContents).queryByText('notes.txt')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rename notes.txt' })).toBeInTheDocument()
+    expect(window.localStorage.getItem('f24-show-file-extensions')).toBe('false')
+
+    cleanup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Root' })
+    expect(screen.getByRole('region', { name: 'Root contents' })).toHaveTextContent('notes')
+    await user.click(screen.getByRole('button', { name: 'Display settings' }))
+    expect(screen.getByRole('checkbox', { name: 'Show file extensions' })).not.toBeChecked()
   })
 })
